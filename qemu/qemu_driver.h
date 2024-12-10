@@ -17,6 +17,7 @@ public:
     ~QemuDriver();
 
     // 实现虚拟机操作
+    void createVM(const std::string& name, int memory, int vcpus) override;
     void startVM(const std::string& name) override;
     void stopVM(const std::string& name) override;
     std::string getInfo() const override;

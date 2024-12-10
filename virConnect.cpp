@@ -4,14 +4,16 @@
 VirConnect::VirConnect(const std::string& uri) : uri(uri) {
     // 通过URI创建对应类型的Driver
     driver = DriverFactory::createDriver(uri);
+    // TODO: 这里应该查看连接到的URI中有哪些虚拟机，加载到VirConnect的私有数据结构中
 }
 
 // 创建虚拟机
 std::shared_ptr<VirDomain> VirConnect::createDomain(const std::string& name, int memory, int vcpus) {
-    if (domains.find(name) != domains.end()) {
+    if ( domains.find(name) != domains.end() ) {
         throw std::runtime_error("Domain with name " + name + " already exists.");
     }
     auto domain = std::make_shared<VirDomain>(name, memory, vcpus, driver.get());
+    driver->createVM(name, memory, vcpus);
     domains[name] = domain;
     return domain;
 }
@@ -19,7 +21,7 @@ std::shared_ptr<VirDomain> VirConnect::createDomain(const std::string& name, int
 // 删除虚拟机
 void VirConnect::deleteDomain(const std::string& name) {
     auto it = domains.find(name);
-    if (it == domains.end()) {
+    if ( it == domains.end() ) {
         throw std::runtime_error("Domain with name " + name + " does not exist.");
     }
     domains.erase(it);
@@ -28,7 +30,7 @@ void VirConnect::deleteDomain(const std::string& name) {
 // 获取虚拟机
 std::shared_ptr<VirDomain> VirConnect::getDomain(const std::string& name) const {
     auto it = domains.find(name);
-    if (it == domains.end()) {
+    if ( it == domains.end() ) {
         throw std::runtime_error("Domain with name " + name + " does not exist.");
     }
     return it->second;
@@ -37,10 +39,10 @@ std::shared_ptr<VirDomain> VirConnect::getDomain(const std::string& name) const 
 // 显示所有虚拟机
 void VirConnect::showAllDomain() const {
     std::cout << "All domains:" << std::endl;
-    for (const auto& pair : domains) {
+    for ( const auto& pair : domains ) {
         std::cout << pair.first << std::endl;
     }
-}   
+}
 
 // 调用驱动的方法
 void VirConnect::startVM(const std::string& name) {
