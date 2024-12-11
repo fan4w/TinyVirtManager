@@ -16,6 +16,8 @@ public:
     virtual void startVM(const std::string& name) = 0;
     virtual void stopVM(const std::string& name) = 0;
     virtual std::string getInfo() const = 0;
+
+    // 以下为仿照Libvirt中driver-hypervisor的定义的接口，有些接口没有必要实现
 };
 
 class DriverFactory {

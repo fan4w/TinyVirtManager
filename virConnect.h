@@ -6,7 +6,7 @@
 #include <memory>
 #include <stdexcept>
 #include "virDomain.h"
-#include "driver_hypervisor.h"
+#include "driver-hypervisor.h"
 
 class VirConnect {
 private:
