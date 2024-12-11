@@ -21,6 +21,10 @@ public:
     void startVM(const std::string& name) override;
     void stopVM(const std::string& name) override;
     std::string getInfo() const override;
+
+    std::shared_ptr<VirDomain> domainLookupByName(const std::string& name) override;
+    void domainDefineXML(const std::string& xml) override;
+    void domainCreate(std::shared_ptr<VirDomain> domain) override;
 };
 
 #endif // QEMU_DRIVER_H

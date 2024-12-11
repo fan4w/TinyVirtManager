@@ -40,3 +40,16 @@ void QemuDriver::stopVM(const std::string& name) {
 std::string QemuDriver::getInfo() const {
     return "QEMU Driver managing virtual machines.";
 }
+
+// 暂时为空
+std::shared_ptr<VirDomain> QemuDriver::domainLookupByName(const std::string& name) {
+    return nullptr;
+}
+
+void QemuDriver::domainDefineXML(const std::string& xml) {
+    return;
+}
+
+void QemuDriver::domainCreate(std::shared_ptr<VirDomain> domain) {
+    return;
+}
