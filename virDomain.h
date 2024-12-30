@@ -8,27 +8,20 @@
 
 class VirDomain {
 private:
-    std::string name;       // 虚拟机名称
-    int memory;             // 虚拟机内存大小 (MB)
-    int vcpus;              // 虚拟机虚拟 CPU 数量
-    bool isRunning;         // 虚拟机当前状态
+    std::string name;
+    int id;
+    std::string uuid;
     HypervisorDriver* driver; // 对应的驱动指针，供操作虚拟机使用
 
 public:
-    // 构造函数
-    VirDomain(const std::string& name, int memory, int vcpus, HypervisorDriver* driver);
+    // 仿照Libvirt中的定义，增加一些方法，请根据以下方法编写程序
+    VirDomain(const std::string& xmlDesc, HypervisorDriver* driver, unsigned int flags = 0);
 
-    // 虚拟机操作
-    void start();           // 启动虚拟机
-    void shutdown();        // 关闭虚拟机
-    void reboot();          // 重启虚拟机
-    std::string getInfo() const; // 获取虚拟机信息
-
-    // 获取属性方法
-    std::string getName() const;
-    int getMemory() const;
-    int getVCPUs() const;
-    bool getState() const;
+    // Accessors
+    int virDomainGetState(unsigned int& reason) const;
+    std::string virDomainGetName() const;
+    int virDomainGetID() const;
+    std::string virDomainGetUUID() const;
 };
 
 #endif // VIRDOMAIN_H

@@ -8,42 +8,37 @@ int main() {
         VirConnect conn("qemu:///system");
 
         // 创建虚拟机
-        std::cout << "Creating virtual machines..." << std::endl;
-        auto vm1 = conn.createDomain("VM1", 2048, 2); // 名称为 VM1，内存 2048MB，2 个 vCPU
-        auto vm2 = conn.createDomain("VM2", 4096, 4); // 名称为 VM2，内存 4096MB，4 个 vCPU
+        std::string xmlDesc = "<domain type='kvm'>"
+                              "  <name>test</name>"
+                              "  <memory unit='KiB'>1048576</memory>"
+                              "  <vcpu placement='static'>1</vcpu>"
+                              "  <os>"
+                              "    <type arch='x86_64' machine='pc-i440fx-2.10'>hvm</type>"
+                              "    <boot dev='hd'/>"
+                              "  </os>"
+                              "  <devices>"
+                              "    <disk type='file' device='disk'>"
+                              "      <driver name='qemu' type='qcow2'/>"
+                              "      <source file='/var/lib/libvirt/images/test.qcow2'/>"
+                              "      <target dev='vda' bus='virtio'/>"
+                              "    </disk>"
+                              "    <interface type='network'>"
+                              "      <mac address='52:54:00:00:00:01'/>"
+                              "      <source network='default'/>"
+                              "    </interface>"
+                              "  </devices>"
+                              "</domain>";
 
-        // 启动虚拟机
-        std::cout << "Starting VM1..." << std::endl;
-        conn.startVM("VM1");
-        std::cout << vm1->getInfo() << std::endl;
+        std::shared_ptr<VirDomain> domain = conn.virDomainDefineXML(xmlDesc);
+        std::cout << "Domain name: " << domain->virDomainGetName() << std::endl;
 
-        std::cout << "Starting VM2..." << std::endl;
-        conn.startVM("VM2");
-        std::cout << vm2->getInfo() << std::endl;
-
-        // 重启虚拟机
-        std::cout << "Rebooting VM1..." << std::endl;
-        vm1->reboot();
-        std::cout << vm1->getInfo() << std::endl;
+        // 获取虚拟机的状态
+        unsigned int reason;
+        int state = domain->virDomainGetState(reason);
+        std::cout << "Domain state: " << state << std::endl;
 
         // 停止虚拟机
-        std::cout << "Stopping VM2..." << std::endl;
-        conn.stopVM("VM2");
-        std::cout << vm2->getInfo() << std::endl;
-
-        // 删除虚拟机
-        std::cout << "Deleting VM2..." << std::endl;
-        conn.deleteDomain("VM2");
-
-        // 测试对不存在虚拟机的操作
-        try {
-            std::cout << "Attempting to start non-existent VM3..." << std::endl;
-            conn.startVM("VM3");
-        }
-        catch ( const std::exception& e ) {
-            std::cerr << "Caught exception: " << e.what() << std::endl;
-        }
-
+        conn.virDomainDestroy(domain);
     }
     catch ( const std::exception& e ) {
         std::cerr << "Error: " << e.what() << std::endl;
