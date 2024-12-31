@@ -1,10 +1,10 @@
 CXX = g++
-CXXFLAGS = -std=c++11 -Wall -Wextra -O2
+CXXFLAGS = -std=c++11 -Wall -Wextra -g
 LDFLAGS = 
 
 TARGET = vir_manager
 
-SRCS = main.cpp virConnect.cpp virDomain.cpp qemu/qemu_driver.cpp driver-hypervisor.cpp
+SRCS = main.cpp virConnect.cpp virDomain.cpp qemu/qemu_driver.cpp driver-hypervisor.cpp tinyxml/tinyxml2.cpp
 OBJS = $(SRCS:.cpp=.o)
 
 all: $(TARGET)
