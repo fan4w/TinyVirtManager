@@ -3,7 +3,6 @@
 
 #include "../driver-hypervisor.h"
 #include <iostream>
-#include <fstream>
 #include <stdexcept>
 #include <unordered_map>
 
