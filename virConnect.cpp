@@ -140,7 +140,8 @@ std::shared_ptr<VirDomain> VirConnect::virDomainCreateXML(const std::string& xml
 }
 
 void VirConnect::virDomainCreate(const std::shared_ptr<VirDomain> domain, unsigned int flags) {
-    if ( flags == 0 ) {    // TODO: 调用驱动的方法启动虚拟机
+    if ( flags == 0 ) {
+        // TODO: 调用驱动的方法启动虚拟机
         driver->domainCreate(domain);
         return;
     }
