@@ -6,6 +6,8 @@
 #include <fstream>
 #include <stdexcept>
 #include <unordered_map>
+#include <unistd.h>
+#include <sys/wait.h>
 
 
 class QemuDriver : public HypervisorDriver {

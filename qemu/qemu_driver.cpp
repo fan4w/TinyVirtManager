@@ -125,7 +125,26 @@ void QemuDriver::domainCreateXML(const std::string& xmlDesc) {
 
     cmd += "\n";
 
-    std::cout << "Command: \n" << cmd << std::endl;
+    // 创建一个子进程并执行
+    std::cout << "Execute command: \n" << cmd << std::endl;
+
+    pid_t pid = fork();
+    if ( pid == -1 ) {
+        std::cerr << "Failed to fork." << std::endl;
+        return;
+    }
+    if ( pid == 0 ) {
+        // 子进程
+        system(cmd.c_str());
+        exit(0);
+    }
+    else {
+        // 父进程
+        int status;
+        std::cout << "Waiting for child process to finish..." << std::endl;
+        waitpid(pid, &status, 0);
+    }
+
     return;
 }
 

@@ -2,4 +2,5 @@
 vir_manager
 rapidxml/
 praseXML.cpp
+praseXML
 *.o

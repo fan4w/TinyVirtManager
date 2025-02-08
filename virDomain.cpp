@@ -2,7 +2,8 @@
 #include "./tinyxml/tinyxml2.h"
 
 VirDomain::VirDomain(const std::string& xmlDesc, HypervisorDriver* driver, unsigned int flags) {
-    // TODO: 解析XML描述，获取虚拟机的基本信息
+    this->driver = driver;
+    // 解析XML描述，获取虚拟机的基本信息
     using namespace tinyxml2;
     XMLDocument doc;
     XMLError err = doc.Parse(xmlDesc.c_str());
