@@ -12,8 +12,7 @@
 
 class QemuDriver : public HypervisorDriver {
 private:
-    std::unordered_map<std::string, bool> domains; // 模拟虚拟机的运行状态
-
+    std::unordered_map<std::string, std::string> domainSockets; // 存储虚拟机的socket
 public:
     // 构造函数与析构函数
     QemuDriver();

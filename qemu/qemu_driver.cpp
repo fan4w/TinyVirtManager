@@ -47,13 +47,29 @@ void QemuDriver::domainCreateXML(const std::string& xmlDesc) {
         throw std::runtime_error("Failed to find element: domain");
     }
 
-    // 解析内存（KiB转MB）
-    int memoryKiB = 0;
+    // 解析内存
+    int memoryMB = 0;
     XMLElement* memElem = domain ? domain->FirstChildElement("memory") : nullptr;
     if ( memElem ) {
-        memElem->QueryIntText(&memoryKiB);
+        const std::string unit = memElem->Attribute("unit") ? memElem->Attribute("unit") : "KiB";
+        memElem->QueryIntText(&memoryMB);
+
+        if ( unit == "KiB" ) {
+            memoryMB /= 1024;
+        }
+        else if ( unit == "MiB" ) {
+            // do nothing
+        }
+        else if ( unit == "GiB" ) {
+            memoryMB *= 1024;
+        }
+        else if ( unit == "TiB" ) {
+            memoryMB *= 1024 * 1024;
+        }
+        else {
+            throw std::runtime_error("Unknown memory unit: " + unit);
+        }
     }
-    int memoryMB = memoryKiB / 1024;
 
     // 解析vCPU数量
     int vcpus = 1;
@@ -110,7 +126,6 @@ void QemuDriver::domainCreateXML(const std::string& xmlDesc) {
         }
     }
 
-    // TODO: 调用QEMU启动虚拟机
     // 根据解析结果拼接命令
     std::string cmd = "qemu-system-x86_64\\\n";
     cmd += " -m " + std::to_string(memoryMB) + "\\\n";
@@ -125,9 +140,10 @@ void QemuDriver::domainCreateXML(const std::string& xmlDesc) {
 
     cmd += "\n";
 
-    // 创建一个子进程并执行
+    // 执行QEMU指令，启动QEMU虚拟机
     std::cout << "Execute command: \n" << cmd << std::endl;
 
+    // 创建一个子进程并执行
     pid_t pid = fork();
     if ( pid == -1 ) {
         std::cerr << "Failed to fork." << std::endl;
