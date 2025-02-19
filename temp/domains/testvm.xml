@@ -5,7 +5,7 @@
     <devices>
         <disk type="file" device="disk">
             <driver name="qemu" type="qcow2"/>
-            <source file="vm.qcow2"/>
+            <source file="../../image/disk.img"/>
             <target dev="vda" bus="virtio"/>
         </disk>
     </devices>
