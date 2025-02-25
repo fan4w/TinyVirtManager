@@ -58,23 +58,12 @@ VirConnect::VirConnect(const std::string& uri, unsigned int flags) : uri(uri) {
 
 
 std::shared_ptr<VirDomain> VirConnect::virDomainDefineXML(const std::string& xmlDesc) {
-    std::shared_ptr<VirDomain> domain = std::make_shared<VirDomain>(xmlDesc, driver.get());
-    domains.push_back(domain);
-
-    // 文件写入到配置文件目录
-    std::string filePath = pathToConfigDir + "/" + domain->virDomainGetName() + ".xml";
-    std::ofstream file(filePath);
-    if ( !file.is_open() ) {
-        throw std::runtime_error("Failed to open file: " + filePath);
-    }
-    file << xmlDesc;
+    std::shared_ptr<VirDomain> domain = driver->domainDefineXML(xmlDesc);
 
     return domain;
 }
 
 void VirConnect::virDomainUndefine(const std::shared_ptr<VirDomain> domain) {
-    // TODO: 可能需要停止虚拟机
-
     // 删除虚拟机对象
     for ( auto it = domains.begin(); it != domains.end(); ++it ) {
         if ( *it == domain ) {
@@ -83,11 +72,8 @@ void VirConnect::virDomainUndefine(const std::shared_ptr<VirDomain> domain) {
         }
     }
 
-    // 删除配置文件
-    std::string filePath = pathToConfigDir + "/" + domain->virDomainGetName() + ".xml";
-    if ( remove(filePath.c_str()) != 0 ) {
-        throw std::runtime_error("Failed to delete file: " + filePath);
-    }
+    // driver停止并删除虚拟机
+    driver->domainUndefine(domain);
 }
 
 std::shared_ptr<VirDomain> VirConnect::virDomainLookupByName(const std::string& name) const {

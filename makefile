@@ -4,7 +4,7 @@ LDFLAGS =
 
 TARGET = vir_manager
 
-SRCS = main.cpp virConnect.cpp virDomain.cpp qemu/qemu_driver.cpp driver-hypervisor.cpp tinyxml/tinyxml2.cpp
+SRCS = main.cpp virConnect.cpp virDomain.cpp qemu/qemu_driver.cpp qemu/qemu_conf.cpp driver-hypervisor.cpp tinyxml/tinyxml2.cpp
 OBJS = $(SRCS:.cpp=.o)
 
 all: $(TARGET)

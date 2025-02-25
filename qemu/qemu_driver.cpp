@@ -3,11 +3,30 @@
 #include "../tinyxml/tinyxml2.h"
 
 QemuDriver::QemuDriver() {
+    config = QemuDriverConfig();
     std::cout << "QEMU Driver initialized." << std::endl;
 }
 
 QemuDriver::~QemuDriver() {
     std::cout << "QEMU Driver destroyed." << std::endl;
+}
+
+std::shared_ptr<VirDomain> QemuDriver::domainDefineXML(const std::string& xml) {
+    return domainDefineXMLFlags(xml, 0);
+}
+
+std::shared_ptr<VirDomain> QemuDriver::domainDefineXMLFlags(const std::string& xml, unsigned int flags) {
+    // TODO: 先不写处理flags的逻辑
+    std::shared_ptr<VirDomain> domain = std::make_shared<VirDomain>(xml, this);
+
+    std::string filePath = config.getConfigDir() + "/" + domain->virDomainGetName() + ".xml";
+    std::ofstream file(filePath);
+    if ( !file.is_open() ) {
+        throw std::runtime_error("Failed to open file: " + filePath);
+    }
+    file << xml;
+
+    return domain;
 }
 
 void QemuDriver::domainCreate(std::shared_ptr<VirDomain> domain) {
@@ -166,6 +185,18 @@ void QemuDriver::domainCreateXML(const std::string& xmlDesc) {
 
 void QemuDriver::domainDestroy(std::shared_ptr<VirDomain> domain) {
     return;
+}
+
+int QemuDriver::domainUndefine(std::shared_ptr<VirDomain> domain) {
+    return domainUndefineFlags(domain, 0);
+}
+
+int QemuDriver::domainUndefineFlags(std::shared_ptr<VirDomain> domain, unsigned int flags) {
+    std::string filePath = config.getConfigDir() + "/" + domain->virDomainGetName() + ".xml";
+    if ( remove(filePath.c_str()) != 0 ) {
+        throw std::runtime_error("Failed to delete file: " + filePath);
+    }
+    return 0;
 }
 
 int QemuDriver::domainGetState(std::shared_ptr<VirDomain> domain) {

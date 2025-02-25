@@ -21,6 +21,13 @@ typedef enum {
                                    power management */
 } virDomainState;
 
+/**
+ * virDomainDefineFlags:
+ */
+typedef enum {
+    VIR_DOMAIN_DEFINE_VALIDATE = (1 << 0), /* Validate the XML document against schema */
+} virDomainDefineFlags;
+
 class VirConnect {
 private:
     std::string uri;                                   // 连接 URI
