@@ -15,6 +15,19 @@ int main() {
         std::cout << "this Domain name: " << domain->virDomainGetName() << std::endl;
         conn.virDomainCreate(domain);
 
+        unsigned int reason = 0;
+        int state = domain->virDomainGetState(reason);
+        if ( state == VIR_DOMAIN_RUNNING ) {
+            std::cout << "Domain " << domain->virDomainGetName() << " is running." << std::endl;
+        }
+        else {
+            std::cout << "Domain " << domain->virDomainGetName() << " is not running." << std::endl;
+        }
+
+        // 忙等待，用于调试
+        while ( true ) {
+        }
+
         // // 创建虚拟机
         // std::string xmlDesc = "<domain type='kvm'>"
         //                       "  <name>test</name>"

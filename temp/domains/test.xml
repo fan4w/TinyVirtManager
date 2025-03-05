@@ -23,10 +23,10 @@
     </cdrom>
   </devices>
   <!-- QMP配置 -->
-  <qemu:commandline>
+  <!-- <qemu:commandline>
     <qemu:arg value='-qmp'/>
     <qemu:arg value='unix:/tmp/qmp-socket,server,nowait'/>
     <qemu:arg value='-monitor'/>
     <qemu:arg value='stdio'/>
-  </qemu:commandline>
+  </qemu:commandline> -->
 </domain>

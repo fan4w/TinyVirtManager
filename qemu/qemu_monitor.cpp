@@ -1,4 +1,4 @@
-#include "monitor.h"
+#include "qemu_monitor.h"
 #include <sys/socket.h>
 #include <sys/un.h>
 #include <unistd.h>
@@ -41,7 +41,7 @@ std::string receiveFromUnixSocket(int socketFd) {
 }
 
 // QMP协议握手
-int Monitor::qemuMonitorNegotiation() {
+int QemuMonitor::qemuMonitorNegotiation() {
     std::cout << "Negotiating..." << std::endl;
     std::string negotiationCMD = "{ \"execute\":\"qmp_capabilities\"}";
     std::string reply;
@@ -57,7 +57,7 @@ int Monitor::qemuMonitorNegotiation() {
 /**
  * 连接UNIX SOCKET
  */
-int Monitor::qemuMonitorOpenUnixSocket() {
+int QemuMonitor::qemuMonitorOpenUnixSocket() {
     if (this->unixSocketPath.empty()) {
         std::cerr << "empty UnixSocketPath" << std::endl;
         return -1;
@@ -121,14 +121,14 @@ int Monitor::qemuMonitorOpenUnixSocket() {
     return sockfd;
 }
 
-int Monitor::qemuMonitorCloseUnixSocket() {
+int QemuMonitor::qemuMonitorCloseUnixSocket() {
     close(this->unixSocketFd);
     std::cout << "Connect Closed!" << std::endl;
     this->unixSocketFd = -1;
     this->open = false;
 }
 
-int Monitor::qemuMonitorSendMessage(const std::string cmd, std::string& reply) {
+int QemuMonitor::qemuMonitorSendMessage(const std::string cmd, std::string& reply) {
 
     // todo 判断socket连接状态
     if (sendToUnixSocket(this->unixSocketFd, cmd) < 0) {
@@ -143,7 +143,7 @@ int Monitor::qemuMonitorSendMessage(const std::string cmd, std::string& reply) {
     return 0;
 }
 
-Monitor::~Monitor() {
+QemuMonitor::~QemuMonitor() {
     qemuMonitorCloseUnixSocket();
 }
 

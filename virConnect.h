@@ -32,7 +32,7 @@ class VirConnect {
 private:
     std::string uri;                                   // 连接 URI
     std::unique_ptr<HypervisorDriver> driver;          // 驱动实例
-    std::vector<std::shared_ptr<VirDomain>> domains; // 虚拟机映射表
+    std::vector<std::shared_ptr<VirDomain>> domains; // 虚拟机链表
 
     // 用于存放虚拟机配置文件的目录
     // TODO: 这里写死不太好，应该写入一个配置文件中，暂时先这样

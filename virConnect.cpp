@@ -9,57 +9,16 @@
 VirConnect::VirConnect(const std::string& uri, unsigned int flags) : uri(uri) {
     // 根据URI创建对应的Driver
     driver = DriverFactory::createDriver(uri);
-
-    // 检查配置文件目录是否存在，不存在则创建
-    struct stat info;
-
-    if ( stat(pathToConfigDir.c_str(), &info) != 0 ) {
-        // Directory does not exist, create it
-        if ( mkdir(pathToConfigDir.c_str(), 0755) != 0 ) {
-            throw std::runtime_error("Failed to create directory: " + pathToConfigDir);
-        }
-    }
-    else if ( !(info.st_mode & S_IFDIR) ) {
-        // Path exists but is not a directory
-        throw std::runtime_error(pathToConfigDir + " exists but is not a directory.");
-    }
-
-    // 遍历目录，加载所有虚拟机配置文件
-    std::vector<std::string> vm_files;
-    DIR* dir = opendir(pathToConfigDir.c_str());
-    if ( dir == nullptr ) {
-        throw std::runtime_error("Failed to open directory: " + pathToConfigDir);
-    }
-
-    struct dirent* entry;
-    while ( (entry = readdir(dir)) != nullptr ) {
-        std::string filename = entry->d_name;
-        if ( filename.size() > 4 && filename.substr(filename.size() - 4) == ".xml" ) {
-            vm_files.push_back(filename);
-        }
-    }
-    closedir(dir);
-
-    // 读取每个XML文件并解析，存入虚拟机映射表中
-    for ( const auto& file : vm_files ) {
-        std::string filePath = pathToConfigDir + "/" + file;
-        std::ifstream in(filePath);
-        if ( !in.is_open() ) {
-            throw std::runtime_error("Failed to open file: " + filePath);
-        }
-        // 读取文件内容
-        std::string xmlDesc((std::istreambuf_iterator<char>(in)), std::istreambuf_iterator<char>());
-        in.close();
-        // 创建虚拟机对象
-        std::shared_ptr<VirDomain> domain = std::make_shared<VirDomain>(xmlDesc, driver.get(), flags);
-        domains.push_back(domain);
+    std::vector<std::shared_ptr<VirDomain>> domains_ = driver->connectListAllDomains(flags);
+    for ( const auto& domain : domains_ ) {
+        domains.push_back(std::make_shared<VirDomain>(domain->virDomainGetName(), domain->virDomainGetID(), domain->virDomainGetUUID(), driver.get()));
     }
 }
 
 
 std::shared_ptr<VirDomain> VirConnect::virDomainDefineXML(const std::string& xmlDesc) {
     std::shared_ptr<VirDomain> domain = driver->domainDefineXML(xmlDesc);
-
+    domains.push_back(domain);
     return domain;
 }
 

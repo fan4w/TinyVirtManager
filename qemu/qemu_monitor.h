@@ -1,8 +1,9 @@
-#pragma once
+#ifndef QEMU_QemuMonitor_H
+#define QEMU_QemuMonitor_H
 #include <iostream>
 
 // 每个虚拟机对象有一个Monitor对象，这个对象必须是线程安全的
-class Monitor {
+class QemuMonitor {
 private:
     std::string unixSocketPath;  // UNIX SOCKET路径
     std::string addr;  // socket IP
@@ -16,15 +17,19 @@ public:
     int qemuMonitorCloseUnixSocket();
     int qemuMonitorNegotiation();  // QMP协议握手，理论上应该设为private，只在Open内部调用，防止有问题先不改
     int qemuMonitorSendMessage(const std::string, std::string& reply);  // 直接发送给定指令并获取返回结果
-    
+
 
     // 构造函数与析构函数
-    Monitor() {};
-    Monitor(std::string socketPath):unixSocketPath(socketPath){};
-    ~Monitor();
+    QemuMonitor() {};
+    QemuMonitor(std::string socketPath) :unixSocketPath(socketPath) {
+        std::cout << "Create a QMP socket at " << socketPath << std::endl;
+    };
+    ~QemuMonitor();
 
     bool isOpen() { return this->open; }
-    void setUnixSocketPath(std::string path) {this->unixSocketPath = path;};
+    void setUnixSocketPath(std::string path) { this->unixSocketPath = path; };
 
 
 };
+
+#endif
