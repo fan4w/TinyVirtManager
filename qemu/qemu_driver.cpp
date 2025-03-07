@@ -271,6 +271,9 @@ QemuDriver::~QemuDriver() {
 }
 
 std::vector<std::shared_ptr<VirDomain>> QemuDriver::connectListAllDomains(unsigned int flags) const {
+    if ( flags != 0 ) {
+        throw std::runtime_error("Unsupported flags");
+    }
     std::vector<std::shared_ptr<VirDomain>> ret;
     for ( const auto& domain : domains ) {
         ret.push_back(std::make_shared<VirDomain>(domain->def->name, domain->def->id, domain->def->uuid));
@@ -331,6 +334,9 @@ std::shared_ptr<VirDomain> QemuDriver::domainCreateXML(const std::string& xmlDes
 }
 
 void QemuDriver::domainDestroy(std::shared_ptr<VirDomain> domain) {
+    if ( domain->virDomainGetID() == -1 ) {
+        throw std::runtime_error("Domain " + domain->virDomainGetName() + " is not running.");
+    }
     return;
 }
 
@@ -339,6 +345,9 @@ int QemuDriver::domainUndefine(std::shared_ptr<VirDomain> domain) {
 }
 
 int QemuDriver::domainUndefineFlags(std::shared_ptr<VirDomain> domain, unsigned int flags) {
+    if ( flags != 0 ) {
+        throw std::runtime_error("Unsupported flags");
+    }
     std::string filePath = config.getConfigDir() + "/" + domain->virDomainGetName() + ".xml";
     if ( remove(filePath.c_str()) != 0 ) {
         throw std::runtime_error("Failed to delete file: " + filePath);
@@ -361,9 +370,9 @@ int QemuDriver::domainGetState(std::shared_ptr<VirDomain> domain) {
         return VIR_DOMAIN_NOSTATE;  // 返回无状态而不是崩溃
     }
 
-    if ( domainObj->monitor->qemuMonitorOpenUnixSocket() < 0 ) {
-        throw std::runtime_error("Failed to open monitor socket.");
-    }
+    // if ( domainObj->monitor->qemuMonitorOpenUnixSocket() < 0 ) {
+    //     throw std::runtime_error("Failed to open monitor socket.");
+    // }
 
     std::string cmd = "{ \"execute\":\"query-status\"}";
     std::string cmdQuit = "{ \"execute\":\"quit\"}";

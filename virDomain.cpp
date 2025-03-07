@@ -1,7 +1,11 @@
 #include "virDomain.h"
 #include "./tinyxml/tinyxml2.h"
 
+// aborted
 VirDomain::VirDomain(const std::string& xmlDesc, HypervisorDriver* driver, unsigned int flags) {
+    if ( flags != 0 ) {
+        throw std::runtime_error("Unsupported flags");
+    }
     this->driver = driver;
     // 解析XML描述，获取虚拟机的基本信息
     using namespace tinyxml2;
@@ -30,7 +34,9 @@ VirDomain::VirDomain(const std::string& xmlDesc, HypervisorDriver* driver, unsig
 }
 
 int VirDomain::virDomainGetState(unsigned int& reason) const {
-    // TODO: 调用驱动的接口获取虚拟机的状态
+    // 调用驱动的接口获取虚拟机的状态
+    // TODO: 返回正确的reason
+    reason = 0;
     return driver->domainGetState(std::make_shared<VirDomain>(*this));
 }
 

@@ -21,9 +21,7 @@ public:
 
     // 构造函数与析构函数
     QemuMonitor() {};
-    QemuMonitor(std::string socketPath) :unixSocketPath(socketPath) {
-        std::cout << "Create a QMP socket at " << socketPath << std::endl;
-    };
+    QemuMonitor(std::string socketPath);
     ~QemuMonitor();
 
     bool isOpen() { return this->open; }
