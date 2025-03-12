@@ -18,6 +18,11 @@ int main(int argc, char* argv[])
         return 1;
     }
 
+    if ( std::string(argv[1]) == "help" ) {
+        printUsage();
+        return 0;
+    }
+
     // 解析命令
     std::string command = argv[1];
 
@@ -83,9 +88,6 @@ int main(int argc, char* argv[])
         catch ( const std::exception& e ) {
             std::cerr << "Error: " << e.what() << std::endl;
         }
-    }
-    else if ( command == "help" ) {
-        printUsage();
     }
     else {
         std::cerr << "未知命令: " << command << std::endl;
