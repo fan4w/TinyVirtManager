@@ -4,3 +4,5 @@ rapidxml/
 praseXML.cpp
 praseXML
 *.o
+build/
+myVirsh

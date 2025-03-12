@@ -31,45 +31,6 @@ int main() {
         else {
             std::cout << "Domain " << domain->virDomainGetName() << " is not running." << std::endl;
         }
-
-        // 忙等待，用于调试
-        while ( true ) {
-        }
-
-        // // 创建虚拟机
-        // std::string xmlDesc = "<domain type='kvm'>"
-        //                       "  <name>test</name>"
-        //                       "  <memory unit='KiB'>1048576</memory>"
-        //                       "  <vcpu placement='static'>1</vcpu>"
-        //                       "  <os>"
-        //                       "    <type arch='x86_64' machine='pc-i440fx-2.10'>hvm</type>"
-        //                       "    <boot dev='hd'/>"
-        //                       "  </os>"
-        //                       "  <devices>"
-        //                       "    <disk type='file' device='disk'>"
-        //                       "      <driver name='qemu' type='qcow2'/>"
-        //                       "      <source file='/var/lib/libvirt/images/test.qcow2'/>"
-        //                       "      <target dev='vda' bus='virtio'/>"
-        //                       "    </disk>"
-        //                       "    <interface type='network'>"
-        //                       "      <mac address='52:54:00:00:00:01'/>"
-        //                       "      <source network='default'/>"
-        //                       "    </interface>"
-        //                       "  </devices>"
-        //                       "</domain>";
-
-        // std::shared_ptr<VirDomain> domain = conn.virDomainDefineXML(xmlDesc);
-        // std::cout << "Domain name: " << domain->virDomainGetName() << std::endl;
-
-        // conn.virDomainCreateXML(xmlDesc);
-
-        // // 获取虚拟机的状态
-        // unsigned int reason;
-        // int state = domain->virDomainGetState(reason);
-        // std::cout << "Domain state: " << state << std::endl;
-
-        // // 停止虚拟机
-        // conn.virDomainDestroy(domain);
     }
     catch ( const std::exception& e ) {
         std::cerr << "Error: " << e.what() << std::endl;

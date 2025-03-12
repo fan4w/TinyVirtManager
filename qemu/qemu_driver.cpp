@@ -239,6 +239,7 @@ int QemuDriver::processQemuObject(std::shared_ptr<qemuDomainObj> domainObj) {
     }
 
     cmd += "\n";
+    cmd += "&";
 
     // 执行QEMU指令，启动QEMU虚拟机
     std::cout << "Execute command: \n" << cmd << std::endl;
@@ -261,7 +262,7 @@ int QemuDriver::processQemuObject(std::shared_ptr<qemuDomainObj> domainObj) {
         domainObj->stateReason.reason = 0;
     }
 
-    domainObj->monitor = std::make_shared<QemuMonitor>(qemuDef->qmpSocketPath);
+    // domainObj->monitor = std::make_shared<QemuMonitor>(qemuDef->qmpSocketPath);
 
     return 0;
 }
@@ -365,8 +366,16 @@ int QemuDriver::domainGetState(std::shared_ptr<VirDomain> domain) {
             break;
         }
     }
+    if ( !found ) {
+        throw std::runtime_error("Domain not found.");
+    }
+    std::shared_ptr<qemuDomainDef> qemuDef = std::dynamic_pointer_cast< qemuDomainDef >(domainObj->def);
+    domainObj->monitor = std::make_shared<QemuMonitor>(qemuDef->qmpSocketPath);
 
     if ( !found || !domainObj || !domainObj->monitor ) {
+        std::cout << "found: " << (!found) << std::endl;
+        std::cout << "domainObj: " << (!domainObj) << std::endl;
+        std::cout << "domainMon: " << (!domainObj->monitor) << std::endl;
         return VIR_DOMAIN_NOSTATE;  // 返回无状态而不是崩溃
     }
 
