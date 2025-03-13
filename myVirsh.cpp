@@ -6,7 +6,7 @@ void printUsage() {
         << "Commands:\n"
         << "  list             列出所有虚拟机\n"
         << "  start <domain>   启动指定虚拟机\n"
-        << "  shutdown <domain> 关闭指定虚拟机\n"
+        << "  destroy <domain> 关闭指定虚拟机\n"
         << "  status <domain>  查询指定虚拟机状态\n"
         << "  help             显示此帮助信息\n";
 }
@@ -26,10 +26,9 @@ int main(int argc, char* argv[])
     // 解析命令
     std::string command = argv[1];
 
-    // 建立连接
-    VirConnect conn("qemu:///system");
-
     if ( command == "list" ) {
+        // 建立连接
+        VirConnect conn("qemu:///system");
         std::vector<std::shared_ptr<VirDomain>> domains = conn.virConnectListAllDomains();
         for ( const auto& domain : domains ) {
             std::cout << "Domain name: " << domain->virDomainGetName() << std::endl;
@@ -41,7 +40,8 @@ int main(int argc, char* argv[])
             printUsage();
             return 1;
         }
-
+        // 建立连接
+        VirConnect conn("qemu:///system");
         const char* domainName = argv[2];
         std::shared_ptr<VirDomain> domain = conn.virDomainLookupByName(domainName);
 
@@ -57,8 +57,28 @@ int main(int argc, char* argv[])
             std::cerr << "Error: " << e.what() << std::endl;
         }
     }
-    else if ( command == "shutdown" ) {
-        std::cout << "等我实现了再说";
+    else if ( command == "destroy" ) {
+        if ( argc < 3 ) {
+            std::cerr << "错误: 缺少域名参数\n";
+            printUsage();
+            return 1;
+        }
+        // 建立连接
+        VirConnect conn("qemu:///system");
+        const char* domainName = argv[2];
+        std::shared_ptr<VirDomain> domain = conn.virDomainLookupByName(domainName);
+
+        if ( domain == NULL ) {
+            std::cerr << "错误: 找不到域 '" << domainName << "'\n";
+            return 1;
+        }
+
+        try {
+            conn.virDomainDestroy(domain);
+        }
+        catch ( const std::exception& e ) {
+            std::cerr << "Error: " << e.what() << std::endl;
+        }
     }
     else if ( command == "status" ) {
         if ( argc < 3 ) {
@@ -66,7 +86,8 @@ int main(int argc, char* argv[])
             printUsage();
             return 1;
         }
-
+        // 建立连接
+        VirConnect conn("qemu:///system");
         const char* domainName = argv[2];
         std::shared_ptr<VirDomain> domain = conn.virDomainLookupByName(domainName);
 

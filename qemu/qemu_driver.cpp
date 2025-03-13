@@ -335,8 +335,37 @@ std::shared_ptr<VirDomain> QemuDriver::domainCreateXML(const std::string& xmlDes
 }
 
 void QemuDriver::domainDestroy(std::shared_ptr<VirDomain> domain) {
-    if ( domain->virDomainGetID() == -1 ) {
+    if ( domain->virDomainGetID() == -114514 ) {
         throw std::runtime_error("Domain " + domain->virDomainGetName() + " is not running.");
+    }
+    std::shared_ptr<qemuDomainObj> domainObj;
+    bool found = false;
+    for ( const auto& domainObj_ : domains ) {
+        if ( domainObj_->def->name == domain->virDomainGetName() ) {
+            domainObj = domainObj_;
+            found = true;
+            break;
+        }
+    }
+    if ( !found ) {
+        throw std::runtime_error("Domain not found.");
+    }
+    std::shared_ptr<qemuDomainDef> qemuDef = std::dynamic_pointer_cast< qemuDomainDef >(domainObj->def);
+    domainObj->monitor = std::make_shared<QemuMonitor>(qemuDef->qmpSocketPath);
+
+    if ( !found || !domainObj || !domainObj->monitor ) {
+        std::cout << "found: " << (!found) << std::endl;
+        std::cout << "domainObj: " << (!domainObj) << std::endl;
+        std::cout << "domainMon: " << (!domainObj->monitor) << std::endl;
+        return;
+    }
+
+    std::string cmd = "{ \"execute\":\"quit\"}";
+    std::string result;
+
+    std::cout << "first send..." << cmd << std::endl;
+    if ( domainObj->monitor->qemuMonitorSendMessage(cmd, result) < 0 ) {
+        return;
     }
     return;
 }
