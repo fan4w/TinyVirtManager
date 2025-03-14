@@ -2,7 +2,7 @@
 #include "virConnect.h"
 
 void printUsage() {
-    std::cout << "Usage: ./vir_manager <command> [options]\n\n"
+    std::cout << "Usage: ./myVirsh <command> [options]\n\n"
         << "Commands:\n"
         << "  list             列出所有虚拟机\n"
         << "  start <domain>   启动指定虚拟机\n"
