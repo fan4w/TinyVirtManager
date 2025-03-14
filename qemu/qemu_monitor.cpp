@@ -10,8 +10,6 @@
 // 构造函数
 QemuMonitor::QemuMonitor(std::string socketPath) :unixSocketPath(socketPath) {
     std::cout << "Create a QMP socket at " << socketPath << std::endl;
-    sleep(2);
-    qemuMonitorNegotiation();
     qemuMonitorOpenUnixSocket();
 };
 
