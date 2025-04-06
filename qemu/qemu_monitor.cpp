@@ -20,6 +20,7 @@ int sendToUnixSocket(int socketFd, const std::string& message) {
     ssize_t bytesSent = send(socketFd, message.c_str(), message.length(), 0);
     if ( bytesSent < 0 ) {
         std::cerr << "Failed to send message to socket" << std::endl;
+        LOG_ERROR("Failed to send message to socket");
         return -1;
     }
     // std::cout << "send msg: " << message.c_str() << std::endl;
@@ -39,6 +40,7 @@ std::string receiveFromUnixSocket(int socketFd) {
     ssize_t bytesRead = recv(socketFd, buffer, sizeof(buffer) - 1, 0);
     if ( bytesRead < 0 ) {
         std::cerr << "Failed to receive message from socket" << std::endl;
+        LOG_ERROR("Failed to receive message from socket");
         return "";
     }
 
@@ -60,6 +62,7 @@ int QemuMonitor::qemuMonitorNegotiation() {
     std::string reply;
     if ( qemuMonitorSendMessage(negotiationCMD, reply) < 0 ) {
         std::cerr << "Failed to Negotiation! Msg returned: " << reply << std::endl;
+        LOG_ERROR("Failed to Negotiation! Msg returned: %s", reply.c_str());
         return -1;
     }
     // std::cout << "Negotiation Result:" << reply << std::endl;
@@ -73,12 +76,14 @@ int QemuMonitor::qemuMonitorNegotiation() {
 int QemuMonitor::qemuMonitorOpenUnixSocket() {
     if ( this->unixSocketPath.empty() ) {
         std::cerr << "empty UnixSocketPath" << std::endl;
+        LOG_ERROR("empty UnixSocketPath");
         return -1;
     }
     int sockfd = socket(AF_UNIX, SOCK_STREAM, 0);
     if ( sockfd == -1 )
     {
         std::cerr << "Failed to create socket" << std::endl;
+        LOG_ERROR("Failed to create socket");
         return sockfd;
     }
     // std::cout << "client socket created! sockfd: " << sockfd << std::endl;
@@ -116,6 +121,7 @@ int QemuMonitor::qemuMonitorOpenUnixSocket() {
 
     if ( conn < 0 ) {
         std::cerr << "Failed to connect to server, socket closed!" << std::endl;
+        LOG_ERROR("Failed to connect to server, socket closed!");
         close(sockfd);
         return -1;
     }

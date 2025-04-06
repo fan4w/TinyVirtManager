@@ -25,6 +25,7 @@ void QemuDriver::loadAllDomainConfigs() {
     LOG_INFO("Loading domain configurations from %s", configDir.c_str());
     if ( !dir ) {
         std::cerr << "Failed to open domain config directory: " << configDir << std::endl;
+        LOG_ERROR("Failed to open domain config directory: %s", configDir.c_str());
         return;
     }
 
@@ -43,6 +44,7 @@ void QemuDriver::loadAllDomainConfigs() {
             }
             catch ( const std::exception& e ) {
                 std::cerr << "Failed to load domain config " << filename << ": " << e.what() << std::endl;
+                LOG_ERROR("Failed to load domain config %s: %s", filename.c_str(), e.what());
             }
         }
     }
@@ -285,6 +287,7 @@ int QemuDriver::processQemuObject(std::shared_ptr<qemuDomainObj> domainObj) {
     pid_t pid = fork();
     if ( pid == -1 ) {
         std::cerr << "Failed to fork: " << strerror(errno) << std::endl;
+        LOG_ERROR("Failed to fork: %s", strerror(errno));
         return -1;
     }
 
@@ -307,6 +310,7 @@ int QemuDriver::processQemuObject(std::shared_ptr<qemuDomainObj> domainObj) {
 
         // 如果 execv 失败，记录错误并退出
         std::cerr << "Failed to execute QEMU: " << strerror(errno) << std::endl;
+        LOG_ERROR("Failed to execute QEMU: %s", strerror(errno));
         _exit(EXIT_FAILURE);
     }
     else {
@@ -447,6 +451,7 @@ void QemuDriver::domainDestroy(std::shared_ptr<VirDomain> domain) {
     // Send SIGKILL to forcefully terminate the QEMU process
     if ( kill(domainObj->pid, SIGKILL) < 0 ) {
         std::cerr << "Failed to kill domain process: " << strerror(errno) << std::endl;
+        LOG_ERROR("Failed to kill domain process: %s", strerror(errno));
         return;
     }
 
