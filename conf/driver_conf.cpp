@@ -5,6 +5,7 @@
 #include <iostream>   
 #include <unistd.h>
 #include "./driver_conf.h"
+#include "../log/log.h"
 
 DriverConfig::DriverConfig() : configDir("./temp/domains") {
     // 检查配置文件路径是否存在
@@ -56,6 +57,7 @@ bool DriverConfig::createDirectoryIfNotExists(const std::string& path) const {
         throw std::runtime_error("Failed to create directory: " + path + ", error: " + strerror(errno));
     }
 
-    std::cout << "Created directory: " << path << std::endl;
+    // std::cout << "Created directory: " << path << std::endl;
+    LOG_INFO("Created directory: %s", path.c_str());
     return true;
 }

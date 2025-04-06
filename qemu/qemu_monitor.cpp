@@ -1,4 +1,5 @@
 #include "qemu_monitor.h"
+#include "../log/log.h"
 #include <sys/socket.h>
 #include <sys/un.h>
 #include <unistd.h>
@@ -9,7 +10,8 @@
 
 // 构造函数
 QemuMonitor::QemuMonitor(std::string socketPath) :unixSocketPath(socketPath) {
-    std::cout << "Create a QMP socket at " << socketPath << std::endl;
+    // std::cout << "Create a QMP socket at " << socketPath << std::endl;
+    LOG_INFO("Create a QMP socket at %s", socketPath.c_str());
     qemuMonitorOpenUnixSocket();
 };
 
@@ -20,7 +22,8 @@ int sendToUnixSocket(int socketFd, const std::string& message) {
         std::cerr << "Failed to send message to socket" << std::endl;
         return -1;
     }
-    std::cout << "send msg: " << message.c_str() << std::endl;
+    // std::cout << "send msg: " << message.c_str() << std::endl;
+    LOG_INFO("send msg: %s", message.c_str());
     return 0; // 发送成功
 }
 // 从 Unix Socket 接收信息
@@ -41,14 +44,18 @@ std::string receiveFromUnixSocket(int socketFd) {
 
     buffer[bytesRead] = '\0'; // 确保字符串以 '\0' 结尾
     receivedMessage = buffer;
-    std::cout << "recv msg:" << receivedMessage << std::endl;
+    // std::cout << "recv msg:" << receivedMessage << std::endl;
+    // QMP协议返回的消息是JSON格式的字符串，通常最后会有一个换行符
+    // 这里不进行额外处理，以保留原始格式
+    LOG_INFO("recv msg: %s", receivedMessage.c_str());
 
     return receivedMessage;
 }
 
 // QMP协议握手
 int QemuMonitor::qemuMonitorNegotiation() {
-    std::cout << "Negotiating..." << std::endl;
+    // std::cout << "Negotiating..." << std::endl;
+    LOG_INFO("Negotiating...");
     std::string negotiationCMD = "{ \"execute\":\"qmp_capabilities\"}";
     std::string reply;
     if ( qemuMonitorSendMessage(negotiationCMD, reply) < 0 ) {
@@ -74,7 +81,8 @@ int QemuMonitor::qemuMonitorOpenUnixSocket() {
         std::cerr << "Failed to create socket" << std::endl;
         return sockfd;
     }
-    std::cout << "client socket created! sockfd: " << sockfd << std::endl;
+    // std::cout << "client socket created! sockfd: " << sockfd << std::endl;
+    LOG_INFO("client socket created! sockfd: %d", sockfd);
     // 设置接收数据的超时时间
     struct timeval timeout;
     timeout.tv_sec = MAX_RECV_WAIT_TIME;  // 超时时间为 5 秒
@@ -93,13 +101,15 @@ int QemuMonitor::qemuMonitorOpenUnixSocket() {
     while ( count < MAX_RETRY_TIMES ) {
         conn = connect(sockfd, ( struct sockaddr* )&serverAddr, sizeof(struct sockaddr_un));
         if ( conn < 0 ) {
-            std::cout << count + 1 << " times connect failed, sleep and retry..." << std::endl;
+            // std::cout << count + 1 << " times connect failed, sleep and retry..." << std::endl;
+            LOG_INFO("%d times connect failed, sleep and retry...", count + 1);
             count++;
             sleep(RETRY_INTERVAL_SEC);
             continue;
         }
         else {
-            std::cout << "Connected to server!" << std::endl;
+            // std::cout << "Connected to server!" << std::endl;
+            LOG_INFO("Connected to server!");
             break;
         }
     }
@@ -130,7 +140,8 @@ int QemuMonitor::qemuMonitorOpenUnixSocket() {
 
 int QemuMonitor::qemuMonitorCloseUnixSocket() {
     close(this->unixSocketFd);
-    std::cout << "Connect Closed!" << std::endl;
+    // std::cout << "Connect Closed!" << std::endl;
+    LOG_INFO("Connect Closed!");
     this->unixSocketFd = -1;
     this->open = false;
     return 0;

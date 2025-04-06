@@ -21,7 +21,8 @@ void QemuDriver::loadAllDomainConfigs() {
 
     // 遍历配置目录下的所有XML文件
     DIR* dir = opendir(configDir.c_str());
-    std::cout << "Loading domain configurations from " << configDir << std::endl;
+    // std::cout << "Loading domain configurations from " << configDir << std::endl;
+    LOG_INFO("Loading domain configurations from %s", configDir.c_str());
     if ( !dir ) {
         std::cerr << "Failed to open domain config directory: " << configDir << std::endl;
         return;
@@ -47,7 +48,8 @@ void QemuDriver::loadAllDomainConfigs() {
     }
     closedir(dir);
 
-    std::cout << "Loaded " << domains.size() << " domain configurations." << std::endl;
+    // std::cout << "Loaded " << domains.size() << " domain configurations." << std::endl;
+    LOG_INFO("Loaded %zu domain configurations.", domains.size());
 }
 
 std::string QemuDriver::readFileContent(const std::string& filePath) const {
@@ -270,11 +272,14 @@ int QemuDriver::processQemuObject(std::shared_ptr<qemuDomainObj> domainObj) {
     execArgs.push_back(nullptr); // execv 需要 NULL 结尾
 
     // 记录即将执行的完整命令（调试用）
-    std::cout << "Executing QEMU command: ";
+    // std::cout << "Executing QEMU command: ";
+    std::string command;
     for ( const auto& arg : args ) {
-        std::cout << arg << " ";
+        // std::cout << arg << " ";
+        command += arg + " ";
     }
-    std::cout << std::endl;
+    // std::cout << std::endl;
+    LOG_INFO("Executing QEMU command: %s", command.c_str());
 
     // 创建子进程启动 QEMU
     pid_t pid = fork();
@@ -336,13 +341,15 @@ int QemuDriver::processQemuObject(std::shared_ptr<qemuDomainObj> domainObj) {
         }
     }
 
-    std::cout << "Domain: " << domainObj->def->name << " started with PID: " << domainObj->pid << std::endl;
+    // std::cout << "Domain: " << domainObj->def->name << " started with PID: " << domainObj->pid << std::endl;
+    LOG_INFO("Domain: %s started with PID: %d", domainObj->def->name.c_str(), domainObj->pid);
 
     return 0;
 }
 
 QemuDriver::~QemuDriver() {
-    std::cout << "QEMU Driver destroyed." << std::endl;
+    // std::cout << "QEMU Driver destroyed." << std::endl;
+    LOG_INFO("QEMU Driver destroyed.");
 }
 
 std::vector<std::shared_ptr<VirDomain>> QemuDriver::connectListAllDomains(unsigned int flags) const {
@@ -428,8 +435,10 @@ void QemuDriver::domainDestroy(std::shared_ptr<VirDomain> domain) {
     // domainObj->monitor = std::make_shared<QemuMonitor>(qemuDef->qmpSocketPath);
 
     if ( !found || !domainObj ) {
-        std::cout << "found: " << (!found) << std::endl;
-        std::cout << "domainObj: " << (!domainObj) << std::endl;
+        // std::cout << "found: " << (!found) << std::endl;
+        LOG_INFO("found: %d", !found);
+        // std::cout << "domainObj: " << (!domainObj) << std::endl;
+        LOG_INFO("domainObj: %d", !domainObj);
         // std::cout << "domainMon: " << (!domainObj->monitor) << std::endl;
         return;
     }
@@ -446,7 +455,8 @@ void QemuDriver::domainDestroy(std::shared_ptr<VirDomain> domain) {
     domainObj->stateReason.reason = 1; // Destroyed
     domainObj->pid = -1; // Mark as not running
 
-    std::cout << "Domain " << domainObj->def->name << " destroyed." << std::endl;
+    // std::cout << "Domain " << domainObj->def->name << " destroyed." << std::endl;
+    LOG_INFO("Domain %s destroyed.", domainObj->def->name.c_str());
     return;
 }
 
@@ -471,16 +481,20 @@ void QemuDriver::domainShutdown(std::shared_ptr<VirDomain> domain) {
     domainObj->monitor = std::make_shared<QemuMonitor>(qemuDef->qmpSocketPath);
 
     if ( !found || !domainObj || !domainObj->monitor ) {
-        std::cout << "found: " << (!found) << std::endl;
-        std::cout << "domainObj: " << (!domainObj) << std::endl;
-        std::cout << "domainMon: " << (!domainObj->monitor) << std::endl;
+        // std::cout << "found: " << (!found) << std::endl;
+        LOG_INFO("found: %d", !found);
+        // std::cout << "domainObj: " << (!domainObj) << std::endl;
+        LOG_INFO("domainObj: %d", !domainObj);
+        // std::cout << "domainMon: " << (!domainObj->monitor) << std::endl;
+        LOG_INFO("domainMon: %d", !domainObj->monitor);
         return;
     }
 
     std::string cmd = "{ \"execute\":\"quit\"}";
     std::string result;
 
-    std::cout << "first send..." << cmd << std::endl;
+    // std::cout << "first send..." << cmd << std::endl;
+    LOG_INFO("first send...%s", cmd.c_str());
     if ( domainObj->monitor->qemuMonitorSendMessage(cmd, result) < 0 ) {
         return;
     }
@@ -489,7 +503,8 @@ void QemuDriver::domainShutdown(std::shared_ptr<VirDomain> domain) {
     domainObj->stateReason.reason = 1; // Destroyed
     domainObj->pid = -1; // Mark as not running
 
-    std::cout << "Domain " << domainObj->def->name << " shutdown." << std::endl;
+    // std::cout << "Domain " << domainObj->def->name << " shutdown." << std::endl;
+    LOG_INFO("Domain %s shutdown.", domainObj->def->name.c_str());
 
     return;
 }
@@ -526,9 +541,12 @@ int QemuDriver::domainGetState(std::shared_ptr<VirDomain> domain) {
     domainObj->monitor = std::make_shared<QemuMonitor>(qemuDef->qmpSocketPath);
 
     if ( !found || !domainObj || !domainObj->monitor ) {
-        std::cout << "found: " << (!found) << std::endl;
-        std::cout << "domainObj: " << (!domainObj) << std::endl;
-        std::cout << "domainMon: " << (!domainObj->monitor) << std::endl;
+        // std::cout << "found: " << (!found) << std::endl;
+        LOG_INFO("found: %d", !found);
+        // std::cout << "domainObj: " << (!domainObj) << std::endl;
+        LOG_INFO("domainObj: %d", !domainObj);
+        // std::cout << "domainMon: " << (!domainObj->monitor) << std::endl;
+        LOG_INFO("domainMon: %d", !domainObj->monitor);
         return VIR_DOMAIN_NOSTATE;  // 返回无状态而不是崩溃
     }
 
@@ -540,7 +558,8 @@ int QemuDriver::domainGetState(std::shared_ptr<VirDomain> domain) {
     std::string cmdQuit = "{ \"execute\":\"quit\"}";
     std::string result;
 
-    std::cout << "first send..." << cmd << std::endl;
+    // std::cout << "first send..." << cmd << std::endl;
+    LOG_INFO("first send...%s", cmd.c_str());
     if ( domainObj->monitor->qemuMonitorSendMessage(cmd, result) < 0 ) {
         return -1;
     }
