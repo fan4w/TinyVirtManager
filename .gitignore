@@ -6,3 +6,4 @@ praseXML
 *.o
 build/
 myVirsh
+logs/

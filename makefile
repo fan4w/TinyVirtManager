@@ -6,6 +6,8 @@ TARGET = vir_manager
 
 SRCS = main.cpp virConnect.cpp virDomain.cpp driver-hypervisor.cpp \
        qemu/qemu_driver.cpp qemu/qemu_conf.cpp qemu/qemu_monitor.cpp \
+	   conf/driver_conf.cpp conf/config_manager.cpp \
+	   log/log.cpp log/buffer.cpp \
        tinyxml/tinyxml2.cpp
 OBJS = $(SRCS:.cpp=.o)
 

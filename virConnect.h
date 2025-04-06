@@ -8,6 +8,7 @@
 #include <vector>
 #include "virDomain.h"
 #include "driver-hypervisor.h"
+#include "./log/log.h"
 
 typedef enum {
     VIR_DOMAIN_NOSTATE = 0,     /* no state */
@@ -74,6 +75,7 @@ public:
 
     // Destruction: 用于关闭或停用并析构对象
     void virDomainDestroy(const std::shared_ptr<VirDomain> domain);
+    void virDomainShutdown(const std::shared_ptr<VirDomain> domain);
 };
 
 #endif // VIRCONNECT_H

@@ -4,11 +4,12 @@
 void printUsage() {
     std::cout << "Usage: ./myVirsh <command> [options]\n\n"
         << "Commands:\n"
-        << "  list             列出所有虚拟机\n"
-        << "  start <domain>   启动指定虚拟机\n"
-        << "  destroy <domain> 关闭指定虚拟机\n"
-        << "  status <domain>  查询指定虚拟机状态\n"
-        << "  help             显示此帮助信息\n";
+        << "  list              列出所有虚拟机\n"
+        << "  start <domain>    启动指定虚拟机\n"
+        << "  destroy <domain>  强制关闭指定虚拟机\n"
+        << "  shutdown <domain> 优雅关闭指定虚拟机"
+        << "  status <domain>   查询指定虚拟机状态\n"
+        << "  help              显示此帮助信息\n";
 }
 
 int main(int argc, char* argv[])
@@ -52,6 +53,29 @@ int main(int argc, char* argv[])
 
         try {
             conn.virDomainCreate(domain);
+        }
+        catch ( const std::exception& e ) {
+            std::cerr << "Error: " << e.what() << std::endl;
+        }
+    }
+    else if ( command == "shutdown" ) {
+        if ( argc < 3 ) {
+            std::cerr << "错误: 缺少域名参数\n";
+            printUsage();
+            return 1;
+        }
+        // 建立连接
+        VirConnect conn("qemu:///system");
+        const char* domainName = argv[2];
+        std::shared_ptr<VirDomain> domain = conn.virDomainLookupByName(domainName);
+
+        if ( domain == NULL ) {
+            std::cerr << "错误: 找不到域 '" << domainName << "'\n";
+            return 1;
+        }
+
+        try {
+            conn.virDomainShutdown(domain);
         }
         catch ( const std::exception& e ) {
             std::cerr << "Error: " << e.what() << std::endl;

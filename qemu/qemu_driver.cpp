@@ -5,6 +5,8 @@
 #include <dirent.h>
 #include <memory>
 #include <map>
+#include <sys/stat.h>
+#include <fcntl.h>
 
 QemuDriver::QemuDriver() {
     config = QemuDriverConfig();
@@ -205,64 +207,136 @@ std::shared_ptr<qemuDomainObj> QemuDriver::parseAndCreateDomainObj(const std::st
     // 所以不创建QemuMonitor对象，只记录路径
 }
 
+int QemuDriver::generateUniqueID() {
+    static int idCounter = 0;
+    return idCounter++;
+}
+
 int QemuDriver::processQemuObject(std::shared_ptr<qemuDomainObj> domainObj) {
-    // 如果虚拟机未运行，组装启动命令并执行
+    // 检查虚拟机状态
     if ( domainObj->pid != -1 ) {
         throw std::runtime_error("Domain " + domainObj->def->name + " is already running.");
     }
+
     std::shared_ptr<qemuDomainDef> qemuDef = std::dynamic_pointer_cast< qemuDomainDef >(domainObj->def);
     if ( !qemuDef ) {
         throw std::runtime_error("Failed to cast domain definition to QEMU definition");
     }
 
-    // 如果虚拟机未运行，组装启动命令并执行
-    if ( domainObj->pid != -1 ) {
-        throw std::runtime_error("Domain " + qemuDef->name + " is already running.");
+    // 准备命令行参数数组
+    std::vector<std::string> args;
+    args.push_back(config.getQemuEmulator());
+    args.push_back("-name");
+    args.push_back(qemuDef->name);
+    args.push_back("-m");
+    args.push_back(std::to_string(qemuDef->memory));
+    args.push_back("-smp");
+    args.push_back(std::to_string(qemuDef->vcpus));
+
+    if ( !qemuDef->diskPath.empty() ) {
+        args.push_back("-hda");
+        args.push_back(qemuDef->diskPath);
     }
-    std::string cmd;
-    cmd += config.getQemuEmulator() + "\\\n";
-    cmd += " -m " + std::to_string(qemuDef->memory) + "\\\n";
-    cmd += " -smp " + std::to_string(qemuDef->vcpus) + "\\\n";
-    if ( !qemuDef->diskPath.empty() ) cmd += " -hda " + qemuDef->diskPath + "\\\n";
-    if ( !qemuDef->cdromPath.empty() ) cmd += " -cdrom " + qemuDef->cdromPath + "\\\n";
 
-    // TODO: 处理启动顺序，暂时默认从CDROM启动
-    cmd += " -boot d\\\n";
-    if ( qemuDef->enableKVM ) cmd += " -enable-kvm\\\n";
+    if ( !qemuDef->cdromPath.empty() ) {
+        args.push_back("-cdrom");
+        args.push_back(qemuDef->cdromPath);
+    }
 
-    // 使用qmpSocketPath和monitorSocketPath生成命令行参数
+    args.push_back("-boot");
+    args.push_back("d");
+
+    if ( qemuDef->enableKVM ) {
+        args.push_back("-enable-kvm");
+    }
+
+    // QMP 监控
     if ( !qemuDef->qmpSocketPath.empty() ) {
-        cmd += " -qmp unix:" + qemuDef->qmpSocketPath + ",server,nowait\\\n";
+        // 确保套接字目录存在
+        std::string socketDir = qemuDef->qmpSocketPath.substr(0, qemuDef->qmpSocketPath.find_last_of('/'));
+        struct stat st;
+        if ( stat(socketDir.c_str(), &st) == -1 ) {
+            mkdir(socketDir.c_str(), 0700);
+        }
+        args.push_back("-qmp");
+        args.push_back("unix:" + qemuDef->qmpSocketPath + ",server,nowait");
     }
-    if ( !qemuDef->monitorSocketPath.empty() ) {
-        cmd += " -monitor unix:" + qemuDef->monitorSocketPath + ",server,nowait\\\n";
+
+    // 将参数转换为 char* 数组用于 execv
+    std::vector<char*> execArgs;
+    for ( const auto& arg : args ) {
+        execArgs.push_back(const_cast< char* >(arg.c_str()));
     }
+    execArgs.push_back(nullptr); // execv 需要 NULL 结尾
 
-    cmd += "\n";
-    cmd += "&";
+    // 记录即将执行的完整命令（调试用）
+    std::cout << "Executing QEMU command: ";
+    for ( const auto& arg : args ) {
+        std::cout << arg << " ";
+    }
+    std::cout << std::endl;
 
-    // 执行QEMU指令，启动QEMU虚拟机
-    std::cout << "Execute command: \n" << cmd << std::endl;
-
-    // 创建一个子进程并执行
+    // 创建子进程启动 QEMU
     pid_t pid = fork();
     if ( pid == -1 ) {
-        std::cerr << "Failed to fork." << std::endl;
+        std::cerr << "Failed to fork: " << strerror(errno) << std::endl;
         return -1;
     }
+
     if ( pid == 0 ) {
         // 子进程
-        system(cmd.c_str());
-        exit(0);
+        // 设置进程组
+        setpgid(0, 0);
+
+        // 重定向标准输出和错误输出到日志文件
+        std::string logPath = config.getLogDir() + "/" + qemuDef->name + ".log";
+        int fd = open(logPath.c_str(), O_WRONLY | O_CREAT | O_APPEND, S_IRUSR | S_IWUSR);
+        if ( fd != -1 ) {
+            dup2(fd, STDOUT_FILENO);
+            dup2(fd, STDERR_FILENO);
+            close(fd);
+        }
+
+        // 执行 QEMU 二进制文件
+        execv(config.getQemuEmulator().c_str(), execArgs.data());
+
+        // 如果 execv 失败，记录错误并退出
+        std::cerr << "Failed to execute QEMU: " << strerror(errno) << std::endl;
+        _exit(EXIT_FAILURE);
     }
     else {
         // 父进程
+        // 更新域对象状态
         domainObj->pid = pid;
         domainObj->stateReason.state = VIR_DOMAIN_RUNNING;
         domainObj->stateReason.reason = 0;
+        domainObj->def->id = generateUniqueID(); // 生成唯一ID
+
+        // 等待 QMP 套接字准备就绪
+        // if ( !qemuDef->qmpSocketPath.empty() ) {
+        //     int retries = 20; // 最多等待10秒
+        //     while ( retries > 0 ) {
+        //         if ( access(qemuDef->qmpSocketPath.c_str(), F_OK) == 0 ) {
+        //             // 套接字文件存在，尝试连接 QMP 监视器
+        //             domainObj->monitor = std::make_shared<QemuMonitor>(qemuDef->qmpSocketPath);
+        //             break;
+        //         }
+        //         retries--;
+        //         usleep(500000); // 等待0.5秒
+        //     }
+        // }
+
+        // 设置清理处理程序，以便在主进程终止时清理所有 QEMU 进程
+        static bool cleanupHandlerRegistered = false;
+        if ( !cleanupHandlerRegistered ) {
+            std::atexit([]() {
+                // 添加清理代码
+                });
+            cleanupHandlerRegistered = true;
+        }
     }
 
-    // domainObj->monitor = std::make_shared<QemuMonitor>(qemuDef->qmpSocketPath);
+    std::cout << "Domain: " << domainObj->def->name << " started with PID: " << domainObj->pid << std::endl;
 
     return 0;
 }
@@ -350,6 +424,49 @@ void QemuDriver::domainDestroy(std::shared_ptr<VirDomain> domain) {
     if ( !found ) {
         throw std::runtime_error("Domain not found.");
     }
+    // std::shared_ptr<qemuDomainDef> qemuDef = std::dynamic_pointer_cast< qemuDomainDef >(domainObj->def);
+    // domainObj->monitor = std::make_shared<QemuMonitor>(qemuDef->qmpSocketPath);
+
+    if ( !found || !domainObj ) {
+        std::cout << "found: " << (!found) << std::endl;
+        std::cout << "domainObj: " << (!domainObj) << std::endl;
+        // std::cout << "domainMon: " << (!domainObj->monitor) << std::endl;
+        return;
+    }
+
+    // std::cout<<"pid: " << domainObj->pid << std::endl;
+    // Send SIGKILL to forcefully terminate the QEMU process
+    if ( kill(domainObj->pid, SIGKILL) < 0 ) {
+        std::cerr << "Failed to kill domain process: " << strerror(errno) << std::endl;
+        return;
+    }
+
+    // Update domain state to reflect shutdown
+    domainObj->stateReason.state = VIR_DOMAIN_SHUTOFF;
+    domainObj->stateReason.reason = 1; // Destroyed
+    domainObj->pid = -1; // Mark as not running
+
+    std::cout << "Domain " << domainObj->def->name << " destroyed." << std::endl;
+    return;
+}
+
+void QemuDriver::domainShutdown(std::shared_ptr<VirDomain> domain) {
+    // TODO: add ID and finish it
+    if ( domain->virDomainGetID() == -114514 ) {
+        throw std::runtime_error("Domain " + domain->virDomainGetName() + " is not running.");
+    }
+    std::shared_ptr<qemuDomainObj> domainObj;
+    bool found = false;
+    for ( const auto& domainObj_ : domains ) {
+        if ( domainObj_->def->name == domain->virDomainGetName() ) {
+            domainObj = domainObj_;
+            found = true;
+            break;
+        }
+    }
+    if ( !found ) {
+        throw std::runtime_error("Domain not found.");
+    }
     std::shared_ptr<qemuDomainDef> qemuDef = std::dynamic_pointer_cast< qemuDomainDef >(domainObj->def);
     domainObj->monitor = std::make_shared<QemuMonitor>(qemuDef->qmpSocketPath);
 
@@ -367,6 +484,13 @@ void QemuDriver::domainDestroy(std::shared_ptr<VirDomain> domain) {
     if ( domainObj->monitor->qemuMonitorSendMessage(cmd, result) < 0 ) {
         return;
     }
+
+    domainObj->stateReason.state = VIR_DOMAIN_SHUTOFF;
+    domainObj->stateReason.reason = 1; // Destroyed
+    domainObj->pid = -1; // Mark as not running
+
+    std::cout << "Domain " << domainObj->def->name << " shutdown." << std::endl;
+
     return;
 }
 

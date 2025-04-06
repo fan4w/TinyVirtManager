@@ -2,20 +2,22 @@
 #define QEMU_CONF_H
 
 #include <string>
+#include "../conf/driver_conf.h"
 
-const std::string configFilePath = "./temp/mylibvirt.conf";
-
-class QemuDriverConfig {
+class QemuDriverConfig : public DriverConfig {
 private:
     std::string configDir;
     std::string qmpSocketDir;
     std::string qemuEmulator;
-    bool createDirectoryIfNotExists(const std::string& path) const;
+    // bool createDirectoryIfNotExists(const std::string& path) const;
 public:
     QemuDriverConfig();
     std::string getConfigDir() const;
     std::string getQmpSocketDir() const;
     std::string getQemuEmulator() const;
+    std::string getLogDir() const {
+        return "./temp/log";
+    }
 };
 
 #endif

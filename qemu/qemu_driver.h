@@ -20,12 +20,14 @@ private:
     QemuDriverConfig config;
     std::vector<std::shared_ptr<qemuDomainObj>> domains;
 
+    static int idCounter;
     // 辅助函数
     void loadAllDomainConfigs();
     std::string readFileContent(const std::string& filePath) const;
     std::shared_ptr<qemuDomainObj> parseAndCreateDomainObj(const std::string& xmlDesc);
     int processQemuObject(std::shared_ptr<qemuDomainObj> domainObj);
     // int processQemuObject(std::shared_ptr<qemuDomainObj> domainObj);
+    int generateUniqueID();
 public:
     // 构造函数与析构函数
     QemuDriver();
@@ -50,6 +52,7 @@ public:
     std::shared_ptr<VirDomain> domainCreateXML(const std::string& xmlDesc) override;
 
     void domainDestroy(std::shared_ptr<VirDomain> domain) override;
+    void domainShutdown(std::shared_ptr<VirDomain> domain) override;
 
     int domainUndefine(std::shared_ptr<VirDomain> domain) override;
     int domainUndefineFlags(std::shared_ptr<VirDomain> domain, unsigned int flags) override;

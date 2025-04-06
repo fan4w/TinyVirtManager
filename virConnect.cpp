@@ -7,12 +7,19 @@
 
 
 VirConnect::VirConnect(const std::string& uri, unsigned int flags) : uri(uri) {
+    // 从配置文件初始化日志系统
+    Log::Instance()->initFromConfig("./myLibvirt.conf");
+
+    LOG_INFO("Initializing VirConnect with URI: %s", uri.c_str());
+
     // 根据URI创建对应的Driver
     driver = DriverFactory::createDriver(uri);
     std::vector<std::shared_ptr<VirDomain>> domains_ = driver->connectListAllDomains(flags);
     for ( const auto& domain : domains_ ) {
         domains.push_back(std::make_shared<VirDomain>(domain->virDomainGetName(), domain->virDomainGetID(), domain->virDomainGetUUID(), driver.get()));
     }
+
+    LOG_INFO("VirConnect initialized successfully, found %zu domains", domains.size());
 }
 
 
@@ -93,7 +100,13 @@ void VirConnect::virDomainCreate(const std::shared_ptr<VirDomain> domain, unsign
 }
 
 void VirConnect::virDomainDestroy(const std::shared_ptr<VirDomain> domain) {
-    // TODO: 调用驱动的方法关闭虚拟机
+    // 调用驱动的方法关闭虚拟机
     driver->domainDestroy(domain);
+    return;
+}
+
+void VirConnect::virDomainShutdown(const std::shared_ptr<VirDomain> domain) {
+    // 调用驱动的方法关闭虚拟机
+    driver->domainShutdown(domain);
     return;
 }

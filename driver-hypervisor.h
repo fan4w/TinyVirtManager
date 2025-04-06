@@ -5,7 +5,6 @@
 #include <memory>
 #include <stdexcept>
 #include <vector>
-// #include "qemu/qemu_driver.h"
 
 class VirDomain;
 
@@ -32,6 +31,7 @@ public:
 
     // destroy会停止一个虚拟机
     virtual void domainDestroy(std::shared_ptr<VirDomain> domain) = 0;
+    virtual void domainShutdown(std::shared_ptr<VirDomain> domain) = 0;
 
     // undefine会删除一个虚拟机对象
     virtual int domainUndefine(std::shared_ptr<VirDomain> domain) = 0;
