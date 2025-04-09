@@ -9,9 +9,9 @@
 #include <stdexcept> 
 
 QemuDriverConfig::QemuDriverConfig() {
-    configDir = configManager->getValue("driver.config_dir", "./temp/domains");
-    qmpSocketDir = configManager->getValue("driver.qmp_socket_dir", "./temp/unix_sockets");
-    qemuEmulator = configManager->getValue("driver.qemu_emulator", "/usr/bin/qemu-system-x86_64");
+    configDir = configManager->getValue("qemu.config_dir", "./temp/domains");
+    qmpSocketDir = configManager->getValue("qemu.qmp_socket_dir", "./temp/unix_sockets");
+    qemuEmulator = configManager->getValue("qemu.qemu_emulator", "/usr/bin/qemu-system-x86_64");
     
     if ( !access(configDir.c_str(), F_OK) ) {
         createDirectoryIfNotExists(configDir);

@@ -52,6 +52,19 @@ void QemuDriver::loadAllDomainConfigs() {
 
     // std::cout << "Loaded " << domains.size() << " domain configurations." << std::endl;
     LOG_INFO("Loaded %zu domain configurations.", domains.size());
+
+    // 遍历虚拟机对象，查看是否存在对应的pid文件
+    for ( const auto& domainObj : domains ) {
+        std::string pidFilePath = config.getConfigDir() + "/" + domainObj->def->name + ".pid";
+        std::ifstream pidFile(pidFilePath);
+        if ( pidFile.is_open() ) {
+            int pid;
+            pidFile >> pid;
+            domainObj->pid = pid;
+            domainObj->def->id = generateUniqueID(); // 生成唯一ID
+            LOG_INFO("Domain %s is running with PID: %d", domainObj->def->name.c_str(), pid);
+        }
+    }
 }
 
 std::string QemuDriver::readFileContent(const std::string& filePath) const {
@@ -348,6 +361,17 @@ int QemuDriver::processQemuObject(std::shared_ptr<qemuDomainObj> domainObj) {
     // std::cout << "Domain: " << domainObj->def->name << " started with PID: " << domainObj->pid << std::endl;
     LOG_INFO("Domain: %s started with PID: %d", domainObj->def->name.c_str(), domainObj->pid);
 
+    // 把PID存储到[domainName].pid文件中
+    std::string pidFilePath = config.getConfigDir() + "/" + qemuDef->name + ".pid";
+    std::ofstream pidFile(pidFilePath);
+    if ( !pidFile.is_open() ) {
+        std::cerr << "Failed to open PID file: " << pidFilePath << std::endl;
+        LOG_ERROR("Failed to open PID file: %s", pidFilePath.c_str());
+        return -1;
+    }
+    pidFile << pid;
+    pidFile.close();
+
     return 0;
 }
 
@@ -462,6 +486,14 @@ void QemuDriver::domainDestroy(std::shared_ptr<VirDomain> domain) {
 
     // std::cout << "Domain " << domainObj->def->name << " destroyed." << std::endl;
     LOG_INFO("Domain %s destroyed.", domainObj->def->name.c_str());
+
+    // 删除pid文件
+    std::string pidFilePath = config.getConfigDir() + "/" + domainObj->def->name + ".pid";
+    if ( remove(pidFilePath.c_str()) != 0 ) {
+        std::cerr << "Failed to delete PID file: " << pidFilePath << std::endl;
+        LOG_ERROR("Failed to delete PID file: %s", pidFilePath.c_str());
+    }
+
     return;
 }
 
@@ -510,6 +542,13 @@ void QemuDriver::domainShutdown(std::shared_ptr<VirDomain> domain) {
 
     // std::cout << "Domain " << domainObj->def->name << " shutdown." << std::endl;
     LOG_INFO("Domain %s shutdown.", domainObj->def->name.c_str());
+
+    // 删除pid文件
+    std::string pidFilePath = config.getConfigDir() + "/" + domainObj->def->name + ".pid";
+    if ( remove(pidFilePath.c_str()) != 0 ) {
+        std::cerr << "Failed to delete PID file: " << pidFilePath << std::endl;
+        LOG_ERROR("Failed to delete PID file: %s", pidFilePath.c_str());
+    }
 
     return;
 }
