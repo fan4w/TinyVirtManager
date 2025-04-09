@@ -7,14 +7,16 @@
 #include "./driver_conf.h"
 #include "../log/log.h"
 
-DriverConfig::DriverConfig() : configDir("./temp/domains") {
-    // 检查配置文件路径是否存在
-    if ( access(configFilePath.c_str(), F_OK) == 0 ) {
-        return;
-    }
+DriverConfig::DriverConfig() {
+    configManager = ConfigManager::Instance();
 
-    // 如果对应路径不存在，则创建
-    createDirectoryIfNotExists(configDir);
+    configDir = configManager->getValue("driver.config_dir", "./temp/domains");
+
+    // 检查配置文件路径是否存在
+    if ( !access(configFilePath.c_str(), F_OK) == 0 ) {
+        // 若对应路径不存在，则创建路径
+        createDirectoryIfNotExists(configDir);
+    }
 }
 
 bool DriverConfig::createDirectoryIfNotExists(const std::string& path) const {

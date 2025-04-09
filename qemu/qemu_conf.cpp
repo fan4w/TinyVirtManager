@@ -8,14 +8,19 @@
 #include <cstring>
 #include <stdexcept> 
 
-QemuDriverConfig::QemuDriverConfig() : configDir("./temp/domains"), qmpSocketDir("./temp/unix_sockets"), qemuEmulator("/usr/bin/qemu-system-x86_64") {
-    if ( access(configFilePath.c_str(), F_OK) == 0 ) {
-        return;
+QemuDriverConfig::QemuDriverConfig() {
+    configDir = configManager->getValue("driver.config_dir", "./temp/domains");
+    qmpSocketDir = configManager->getValue("driver.qmp_socket_dir", "./temp/unix_sockets");
+    qemuEmulator = configManager->getValue("driver.qemu_emulator", "/usr/bin/qemu-system-x86_64");
+    
+    if ( !access(configDir.c_str(), F_OK) ) {
+        createDirectoryIfNotExists(configDir);
+    }
+    if ( !access(qmpSocketDir.c_str(), F_OK) ) {
+        createDirectoryIfNotExists(qmpSocketDir);
     }
 
-    // 如果对应路径不存在，则创建
-    createDirectoryIfNotExists(configDir);
-    createDirectoryIfNotExists(qmpSocketDir);
+    return;
 }
 
 std::string QemuDriverConfig::getConfigDir() const {
