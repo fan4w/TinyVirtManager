@@ -19,6 +19,9 @@ public:
     VirDomain(const std::string& name, int id, const std::string& uuid) : name(name), id(id), uuid(uuid) {}
     VirDomain(const std::string& name, int id, const std::string& uuid, HypervisorDriver* driver) : name(name), id(id), uuid(uuid), driver(driver) {}
 
+    void virDomainSetID(int id) {
+        this->id = id;
+    }
     // Accessors
     int virDomainGetState(unsigned int& reason) const;
     std::string virDomainGetName() const;

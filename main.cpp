@@ -15,6 +15,8 @@ int main() {
         std::cout << "this Domain name: " << domain->virDomainGetName() << std::endl;
         conn.virDomainCreate(domain);
 
+        std::cout << "domain ID: " << domain->virDomainGetID() << std::endl;
+        
         unsigned int reason = 0;
         int state = domain->virDomainGetState(reason);
         if ( state == VIR_DOMAIN_RUNNING ) {

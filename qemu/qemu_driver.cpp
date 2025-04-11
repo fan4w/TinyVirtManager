@@ -426,6 +426,7 @@ void QemuDriver::domainCreate(std::shared_ptr<VirDomain> domain) {
     for ( const auto& domainObj : domains ) {
         if ( domainObj->def->name == name ) {
             processQemuObject(domainObj);
+            domain->virDomainSetID(domainObj->def->id);
             return;
         }
     }

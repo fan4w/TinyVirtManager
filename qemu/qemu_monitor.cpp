@@ -4,7 +4,7 @@
 #include <sys/un.h>
 #include <unistd.h>
 
-#define MAX_RETRY_TIMES 1  // 连接失败重试次数
+#define MAX_RETRY_TIMES 2  // 连接失败重试次数
 #define RETRY_INTERVAL_SEC 1  // 连接失败重试间隔
 #define MAX_RECV_WAIT_TIME 5  // 接收函数等待时间
 
