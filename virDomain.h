@@ -15,7 +15,6 @@ private:
 
 public:
     // 仿照Libvirt中的定义，增加一些方法，请根据以下方法编写程序
-    // 这些接口会对外暴露，供外部程序调用
     VirDomain(const std::string& xmlDesc, HypervisorDriver* driver, unsigned int flags = 0);
     VirDomain(const std::string& name, int id, const std::string& uuid) : name(name), id(id), uuid(uuid) {}
     VirDomain(const std::string& name, int id, const std::string& uuid, HypervisorDriver* driver) : name(name), id(id), uuid(uuid), driver(driver) {}

@@ -25,8 +25,8 @@ VirDomain::VirDomain(const std::string& xmlDesc, HypervisorDriver* driver, unsig
     if ( nameElem ) name = nameElem->GetText();
 
     // 获取虚拟机ID
-    XMLElement* idElem = domain->FirstChildElement("id");
-    if ( idElem ) idElem->QueryIntText(&id);
+    // XMLElement* idElem = domain->FirstChildElement("id");
+    // if ( idElem ) idElem->QueryIntText(&id);
 
     // 获取虚拟机UUID
     XMLElement* uuidElem = domain->FirstChildElement("uuid");

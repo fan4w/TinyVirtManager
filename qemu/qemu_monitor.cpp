@@ -4,7 +4,7 @@
 #include <sys/un.h>
 #include <unistd.h>
 
-#define MAX_RETRY_TIMES 5  // 连接失败重试次数
+#define MAX_RETRY_TIMES 1  // 连接失败重试次数
 #define RETRY_INTERVAL_SEC 1  // 连接失败重试间隔
 #define MAX_RECV_WAIT_TIME 5  // 接收函数等待时间
 
@@ -19,7 +19,7 @@ QemuMonitor::QemuMonitor(std::string socketPath) :unixSocketPath(socketPath) {
 int sendToUnixSocket(int socketFd, const std::string& message) {
     ssize_t bytesSent = send(socketFd, message.c_str(), message.length(), 0);
     if ( bytesSent < 0 ) {
-        std::cerr << "Failed to send message to socket" << std::endl;
+        // std::cerr << "Failed to send message to socket" << std::endl;
         LOG_ERROR("Failed to send message to socket");
         return -1;
     }
@@ -39,7 +39,7 @@ std::string receiveFromUnixSocket(int socketFd) {
 
     ssize_t bytesRead = recv(socketFd, buffer, sizeof(buffer) - 1, 0);
     if ( bytesRead < 0 ) {
-        std::cerr << "Failed to receive message from socket" << std::endl;
+        // std::cerr << "Failed to receive message from socket" << std::endl;
         LOG_ERROR("Failed to receive message from socket");
         return "";
     }
@@ -61,7 +61,7 @@ int QemuMonitor::qemuMonitorNegotiation() {
     std::string negotiationCMD = "{ \"execute\":\"qmp_capabilities\"}";
     std::string reply;
     if ( qemuMonitorSendMessage(negotiationCMD, reply) < 0 ) {
-        std::cerr << "Failed to Negotiation! Msg returned: " << reply << std::endl;
+        // std::cerr << "Failed to Negotiation! Msg returned: " << reply << std::endl;
         LOG_ERROR("Failed to Negotiation! Msg returned: %s", reply.c_str());
         return -1;
     }
@@ -75,14 +75,14 @@ int QemuMonitor::qemuMonitorNegotiation() {
  */
 int QemuMonitor::qemuMonitorOpenUnixSocket() {
     if ( this->unixSocketPath.empty() ) {
-        std::cerr << "empty UnixSocketPath" << std::endl;
+        // std::cerr << "empty UnixSocketPath" << std::endl;
         LOG_ERROR("empty UnixSocketPath");
         return -1;
     }
     int sockfd = socket(AF_UNIX, SOCK_STREAM, 0);
     if ( sockfd == -1 )
     {
-        std::cerr << "Failed to create socket" << std::endl;
+        // std::cerr << "Failed to create socket" << std::endl;
         LOG_ERROR("Failed to create socket");
         return sockfd;
     }
@@ -120,7 +120,7 @@ int QemuMonitor::qemuMonitorOpenUnixSocket() {
     }
 
     if ( conn < 0 ) {
-        std::cerr << "Failed to connect to server, socket closed!" << std::endl;
+        // std::cerr << "Failed to connect to server, socket closed!" << std::endl;
         LOG_ERROR("Failed to connect to server, socket closed!");
         close(sockfd);
         return -1;
