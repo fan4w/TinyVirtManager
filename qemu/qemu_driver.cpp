@@ -2,6 +2,7 @@
 #include "../virDomain.h"
 #include "../virConnect.h"
 #include "../tinyxml/tinyxml2.h"
+#include "../util/generate_uuid.h"
 #include <dirent.h>
 #include <memory>
 #include <map>
@@ -54,25 +55,26 @@ void QemuDriver::loadAllDomainConfigs() {
     LOG_INFO("Loaded %zu domain configurations.", domains.size());
 
     // 遍历虚拟机对象，查看是否存在对应的pid文件
-    for (const auto& domainObj : domains) {
+    for ( const auto& domainObj : domains ) {
         std::string pidFilePath = config.getConfigDir() + "/" + domainObj->def->name + ".pid";
         std::ifstream pidFile(pidFilePath);
-        if (pidFile.is_open()) {
+        if ( pidFile.is_open() ) {
             int pid;
             pidFile >> pid;
             pidFile.close();
-            
+
             // 检查PID是否有效（进程是否存在）
-            if (kill(pid, 0) == 0) {
+            if ( kill(pid, 0) == 0 ) {
                 // 进程存在，设置运行状态
                 domainObj->pid = pid;
                 domainObj->def->id = generateUniqueID(); // 生成唯一ID
                 domainObj->stateReason.state = VIR_DOMAIN_RUNNING;
                 LOG_INFO("Domain %s is running with PID: %d", domainObj->def->name.c_str(), pid);
-            } else {
+            }
+            else {
                 // 进程不存在，删除过期的PID文件
-                LOG_WARN("Domain %s has stale PID file (PID %d not running), cleaning up", 
-                         domainObj->def->name.c_str(), pid);
+                LOG_WARN("Domain %s has stale PID file (PID %d not running), cleaning up",
+                    domainObj->def->name.c_str(), pid);
                 remove(pidFilePath.c_str());
                 domainObj->pid = -1;
                 domainObj->stateReason.state = VIR_DOMAIN_SHUTOFF;
@@ -117,7 +119,33 @@ std::shared_ptr<qemuDomainObj> QemuDriver::parseAndCreateDomainObj(const std::st
 
     // 解析UUID
     XMLElement* uuidElem = domainElem->FirstChildElement("uuid");
-    std::string uuid = uuidElem && uuidElem->GetText() ? uuidElem->GetText() : "";
+    std::string uuid;
+    // std::string uuid = uuidElem && uuidElem->GetText() ? uuidElem->GetText() : "";
+    if ( uuidElem && uuidElem->GetText() ) {
+        uuid = uuidElem->GetText();
+    }
+    else {
+        uuid = generateUUID();
+        LOG_INFO("Not found UUID, generate a new one: %s", uuid.c_str());
+        // 写入UUID到XML
+        // 创建一个新的UUID节点
+        XMLElement* newUuidElem = doc.NewElement("uuid");
+        XMLText* uuidText = doc.NewText(uuid.c_str());
+        newUuidElem->InsertEndChild(uuidText);
+
+        // 将UUID节点添加到domain节点中，放在name节点之后
+        if ( nameElem->NextSiblingElement() ) {
+            domainElem->InsertAfterChild(nameElem, newUuidElem);
+        }
+        else {
+            domainElem->InsertEndChild(newUuidElem);
+        }
+
+        // 将修改后的XML保存到原文件
+        std::string filePath = config.getConfigDir() + "/" + domainName + ".xml";
+        doc.SaveFile(filePath.c_str());
+        LOG_INFO("UUID written to XML file: %s", filePath.c_str());
+    }
 
     // 解析内存
     int memoryMB = 0;   // 默认单位为MiB
