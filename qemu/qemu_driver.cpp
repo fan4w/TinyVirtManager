@@ -191,30 +191,8 @@ std::shared_ptr<qemuDomainObj> QemuDriver::parseAndCreateDomainObj(const std::st
     def->cdromPath = cdromPath;
     def->enableKVM = (featuresElem && featuresElem->FirstChildElement("kvm"));
 
-    // 解析qemu:commandline中的QMP和monitor信息 (仅保存路径信息，不创建monitor对象)
     std::string qmpSocketPath;
-    // XMLElement* cmdline = domainElem->FirstChildElement("qemu:commandline");
-    // if ( cmdline ) {
-    //     for ( XMLElement* arg = cmdline->FirstChildElement("qemu:arg");
-    //         arg; arg = arg->NextSiblingElement("qemu:arg") ) {
-    //         const char* val = arg->Attribute("value");
-    //         if ( val ) {
-    //             if ( std::string(val) == "-qmp" ) {
-    //                 arg = arg->NextSiblingElement("qemu:arg");
-    //                 if ( arg && arg->Attribute("value") ) {
-    //                     std::string qmpParam = arg->Attribute("value");
-    //                     // 从unix:/path/to/socket提取路径
-    //                     size_t pos = qmpParam.find("unix:");
-    //                     if ( pos != std::string::npos ) {
-    //                         qmpSocketPath = qmpParam.substr(pos + 5);
-    //                     }
-    //                 }
-    //             }
-    //         }
-    //     }
-    // }
-
-    // 如果XML中未指定QMP路径，使用默认路径
+    // 使用默认路径
     if ( qmpSocketPath.empty() ) {
         qmpSocketPath = config.getQmpSocketDir() + "/" + domainName + ".sock";
     }
@@ -435,7 +413,7 @@ std::shared_ptr<VirDomain> QemuDriver::domainCreateXML(const std::string& xmlDes
 }
 
 void QemuDriver::domainDestroy(std::shared_ptr<VirDomain> domain) {
-    if ( domain->virDomainGetID() == -114514 ) {
+    if ( domain->virDomainGetID() < 0 ) {
         throw std::runtime_error("Domain " + domain->virDomainGetName() + " is not running.");
     }
     std::shared_ptr<qemuDomainObj> domainObj;
@@ -490,7 +468,7 @@ void QemuDriver::domainDestroy(std::shared_ptr<VirDomain> domain) {
 
 void QemuDriver::domainShutdown(std::shared_ptr<VirDomain> domain) {
     // TODO: add ID and finish it
-    if ( domain->virDomainGetID() == -114514 ) {
+    if ( domain->virDomainGetID() < 0 ) {
         throw std::runtime_error("Domain " + domain->virDomainGetName() + " is not running.");
     }
     std::shared_ptr<qemuDomainObj> domainObj;
@@ -560,6 +538,9 @@ int QemuDriver::domainUndefineFlags(std::shared_ptr<VirDomain> domain, unsigned 
 }
 
 int QemuDriver::domainGetState(std::shared_ptr<VirDomain> domain) {
+    if ( domain->virDomainGetID() < 0 ) {
+        return VIR_DOMAIN_SHUTOFF;
+    }
     std::shared_ptr<qemuDomainObj> domainObj;
     bool found = false;
     for ( const auto& domainObj_ : domains ) {
@@ -598,20 +579,6 @@ int QemuDriver::domainGetState(std::shared_ptr<VirDomain> domain) {
     if ( domainObj->monitor->qemuMonitorSendMessage(cmd, result) < 0 ) {
         return -1;
     }
-
-    // std::cout << "second send..." << cmdQuit << std::endl;
-    // if ( domainObj->monitor->qemuMonitorSendMessage(cmdQuit, result) < 0 ) {
-    //     return -1;
-    // }
-
-    // try
-    // {
-    //     domainObj->monitor->qemuMonitorCloseUnixSocket();
-    // }
-    // catch ( const std::exception& e )
-    // {
-    //     std::cerr << e.what() << '\n';
-    // }
 
     // 解析JSON响应获取状态
     if ( result.find("\"status\": \"running\"") != std::string::npos ) {
