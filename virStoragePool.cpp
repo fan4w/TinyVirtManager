@@ -24,3 +24,7 @@ int VirStoragePool::virStoragePoolGetState() const {
 int VirStoragePool::virStoragePoolDelete(unsigned int flags) {
     return driver ? driver->storagePoolDelete(std::make_shared<VirStoragePool>(*this), flags) : -1;
 }
+
+std::vector<std::shared_ptr<VirStorageVol>> VirStoragePool::virStoragePoolListAllVolumes(unsigned int flags) const {
+    return driver ? driver->storagePoolListAllVolumes(std::make_shared<VirStoragePool>(*this), flags) : std::vector<std::shared_ptr<VirStorageVol>>();
+}
