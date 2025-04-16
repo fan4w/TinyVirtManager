@@ -7,7 +7,7 @@
 #include <sstream>
 #include <iomanip>
 
-std::string generateUUID() {
+inline std::string generateUUID() {
     // 确保随机数种子只初始化一次
     static bool seeded = false;
     if (!seeded) {

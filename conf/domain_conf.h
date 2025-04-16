@@ -7,7 +7,6 @@
 
 // 声明基础域定义类
 class virDomainDef {
-    // TODO: 用Public不是个好主意 :(
 public:
     // 基本信息
     std::string name;           // 虚拟机名称

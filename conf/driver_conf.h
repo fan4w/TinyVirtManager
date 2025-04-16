@@ -8,16 +8,16 @@
 
 class DriverConfig {
 protected:
-    std::string configDir;
-    std::string configFilePath;
-    ConfigManager* configManager;
+    std::string configDir;          // 配置目录
+    // std::string configFilePath;     // 配置文件路径
+    ConfigManager* configManager;   // 配置管理器
     bool createDirectoryIfNotExists(const std::string& path) const;
 public:
     DriverConfig();
     std::string getConfigDir() const;
-    std::string getLogDir() const {
-        return "./temp/logs";
-    }
+    // std::string getLogDir() const {
+    //     return "./temp/logs";
+    // }
 };
 
 #endif

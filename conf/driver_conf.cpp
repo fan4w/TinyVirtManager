@@ -13,7 +13,7 @@ DriverConfig::DriverConfig() {
     configDir = configManager->getValue("driver.config_dir", "./temp/domains");
 
     // 检查配置文件路径是否存在
-    if ( !access(configFilePath.c_str(), F_OK) == 0 ) {
+    if ( !access(configDir.c_str(), F_OK) == 0 ) {
         // 若对应路径不存在，则创建路径
         createDirectoryIfNotExists(configDir);
     }

@@ -7,9 +7,13 @@
 #include <stdexcept>
 #include <vector>
 #include "virDomain.h"
+#include "virStoragePool.h"
+#include "virStorageVol.h"
 #include "driver-hypervisor.h"
+#include "driver-storage.h"
 #include "./log/log.h"
 
+// 虚拟机状态枚举
 typedef enum {
     VIR_DOMAIN_NOSTATE = 0,     /* no state */
     VIR_DOMAIN_RUNNING = 1,     /* the domain is running */
@@ -22,6 +26,29 @@ typedef enum {
                                    power management */
 } virDomainState;
 
+// 存储池状态枚举
+typedef enum {
+    VIR_STORAGE_POOL_INACTIVE = 0,    /* 未激活 */
+    VIR_STORAGE_POOL_BUILDING = 1,    /* 正在初始化 */
+    VIR_STORAGE_POOL_RUNNING = 2,     /* 运行中（已激活） */
+    VIR_STORAGE_POOL_DEGRADED = 3,    /* 降级运行 */
+    VIR_STORAGE_POOL_INACCESSIBLE = 4 /* 无法访问 */
+} virStoragePoolState;
+
+// 存储池类型枚举
+typedef enum {
+    VIR_STORAGE_POOL_DIR = 0,     /* 目录池 */
+    VIR_STORAGE_POOL_FS = 1,      /* 文件系统池 */
+    VIR_STORAGE_POOL_DISK = 2,    /* 磁盘池 */
+} virStoragePoolType;
+
+// 存储卷类型枚举
+typedef enum {
+    VIR_STORAGE_VOL_FILE = 0,     /* 常规文件卷 */
+    VIR_STORAGE_VOL_BLOCK = 1,    /* 块设备卷 */
+    VIR_STORAGE_VOL_DIR = 2,      /* 目录卷 */
+} virStorageVolType;
+
 /**
  * virDomainDefineFlags:
  */
@@ -31,9 +58,13 @@ typedef enum {
 
 class VirConnect {
 private:
-    std::string uri;                                   // 连接 URI
-    std::unique_ptr<HypervisorDriver> driver;          // 驱动实例
-    std::vector<std::shared_ptr<VirDomain>> domains; // 虚拟机链表
+    std::string uri;                                    // 连接 URI
+    std::unique_ptr<HypervisorDriver> driver;           // 驱动实例
+    std::vector<std::shared_ptr<VirDomain>> domains;    // 虚拟机链表
+
+    std::unique_ptr<StorageDriver> storageDriver;       // 存储驱动实例
+    std::vector<std::shared_ptr<VirStoragePool>> storagePools; // 存储池链表
+    std::vector<std::shared_ptr<VirStorageVol>> storageVolumes; // 存储卷链表
 
     // 用于存放虚拟机配置文件的目录
     // TODO: 这里写死不太好，应该写入一个配置文件中，暂时先这样
@@ -76,6 +107,30 @@ public:
     // Destruction: 用于关闭或停用并析构对象
     void virDomainDestroy(const std::shared_ptr<VirDomain> domain);
     void virDomainShutdown(const std::shared_ptr<VirDomain> domain);
+
+    // 存储池管理
+    std::shared_ptr<VirStoragePool> virStoragePoolDefineXML(const std::string& xmlDesc, unsigned int flags = 0);
+    void virStoragePoolUndefine(const std::shared_ptr<VirStoragePool> pool);
+    // Creation 意味着激活存储池
+    std::shared_ptr<VirStoragePool> virStoragePoolCreateXML(const std::string& xmlDesc, unsigned int flags = 0);
+    void virStoragePoolCreate(const std::shared_ptr<VirStoragePool> pool, unsigned int flags = 0);
+    // Lookup
+    std::shared_ptr<VirStoragePool> virStoragePoolLookupByName(const std::string& name) const;
+    std::shared_ptr<VirStoragePool> virStoragePoolLookupByUUID(const std::string& uuid) const;
+    // Enumeration
+    std::vector<std::shared_ptr<VirStoragePool>> virConnectListAllStoragePools(unsigned int flags = 0) const;
+    // Destruction
+    void virStoragePoolDestroy(const std::shared_ptr<VirStoragePool> pool);
+
+    // 存储卷管理
+    std::shared_ptr<VirStorageVol> virStorageVolCreateXML(const std::shared_ptr<VirStoragePool> pool, const std::string& xmlDesc, unsigned int flags = 0);
+    std::shared_ptr<VirStorageVol> virStorageVolCreateXMLFrom(const std::shared_ptr<VirStoragePool> pool, const std::string& xmlDesc, const std::shared_ptr<VirStorageVol> srcVol, unsigned int flags = 0);
+
+    // Lookup
+    std::shared_ptr<VirStorageVol> virStorageVolLookupByName(const std::shared_ptr<VirStoragePool> pool, const std::string& name) const;
+    std::shared_ptr<VirStorageVol> virStorageVolLookupByPath(const std::string& path) const;
+
+    int virStorageVolDelete(const std::shared_ptr<VirStorageVol> vol, unsigned int flags = 0);
 };
 
 #endif // VIRCONNECT_H
