@@ -428,8 +428,8 @@ std::shared_ptr<VirStorageVol> FileSystemStorageDriver::storageVolCreateXMLFrom(
         return {};
     }
     // fix warning: unused parameter 'srcVol' 'pool'
-    (void)pool;
-    (void)srcVol;
+    ( void )pool;
+    ( void )srcVol;
 
     // TODO
     LOG_DEBUG("Creating storage volume from XML: %s", xml.c_str());
@@ -566,11 +566,78 @@ std::shared_ptr<StoragePoolObj> FileSystemStorageDriver::parseAndCreateStoragePo
     }
     else {
         uuid = generateUUID();
+        LOG_INFO("Not found UUID, generate a new one: %s", uuid.c_str());
+        // 写入UUID到XML
+        // 创建一个新的UUID节点
+        tinyxml2::XMLElement* newUuidElem = doc.NewElement("uuid");
+        tinyxml2::XMLText* uuidText = doc.NewText(uuid.c_str());
+        newUuidElem->InsertEndChild(uuidText);
+        // 将UUID节点添加到pool节点中，放在name节点之后
+        if ( nameElem->NextSiblingElement() ) {
+            poolElem->InsertAfterChild(nameElem, newUuidElem);
+        }
+        else {
+            poolElem->InsertEndChild(newUuidElem);
+        }
+
+        // 保存修改后的XML
+        std::string filePath = poolsDir + "/" + name + ".xml";
+        doc.SaveFile(filePath.c_str());
+        LOG_INFO("UUID written to XML file: %s", filePath.c_str());
+    }
+
+    tinyxml2::XMLElement* capacityElem = poolElem->FirstChildElement("capacity");
+    size_t capacity = 0;
+    if ( capacityElem && capacityElem->GetText() ) {
+        capacity = std::stoull(capacityElem->GetText());
+    }
+    else {
+        // 默认容量
+        capacity = 1024 * 1024 * 1024; // 1GB
+    }
+
+    tinyxml2::XMLElement* allocationElem = poolElem->FirstChildElement("allocation");
+    size_t allocation = 0;
+    if ( allocationElem && allocationElem->GetText() ) {
+        allocation = std::stoull(allocationElem->GetText());
+    }
+    else {
+        // 默认容量
+        allocation = 1024 * 1024 * 1024; // 1GB
+    }
+
+    tinyxml2::XMLElement* availableElem = poolElem->FirstChildElement("available");
+    size_t available = 0;
+    if ( availableElem && availableElem->GetText() ) {
+        available = std::stoull(availableElem->GetText());
+    }
+    else {
+        // 默认容量
+        available = 1024 * 1024 * 1024; // 1GB
+    }
+
+    tinyxml2::XMLElement* targetElem = poolElem->FirstChildElement("target");
+    // 获取存储池路径
+    tinyxml2::XMLElement* pathElem = targetElem->FirstChildElement("path");
+    if ( !pathElem || !pathElem->GetText() ) {
+        throw std::runtime_error("Pool path not specified");
+    }
+    std::string path = pathElem->GetText();
+    // 检查路径是否存在
+    if ( !fileExists(path) ) {
+        createDirectoryIfNotExists(path);
+        LOG_INFO("Created storage pool path: %s", path.c_str());
     }
 
     pool->name = name;
     pool->uuid = uuid;
+    pool->path = path;
     pool->xmlDesc = xmlDesc;
+    pool->capacity = capacity;
+    pool->allocation = allocation;
+    pool->available = available;
+    // 默认为活动状态
+    pool->active = true;
 
     return pool;
 }
@@ -655,6 +722,7 @@ void FileSystemStorageDriver::loadPoolConfigs() {
     // 遍历存储池对象，查看是否存在对应的卷
     for ( const auto& poolObj : pools ) {
         std::string poolPath = poolObj->path;
+        LOG_INFO("Loading storage volumes from pool: %s", poolPath.c_str());
         DIR* volDir = opendir(poolPath.c_str());
         if ( volDir ) {
             struct dirent* volEntry;

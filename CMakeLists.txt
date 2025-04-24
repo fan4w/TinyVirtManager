@@ -44,4 +44,4 @@ target_compile_options(myVirsh PRIVATE -Wall -Wextra)
 target_compile_options(virlib PRIVATE -Wall -Wextra)
 
 # 安装目标
-install(TARGETS myVirsh DESTINATION bin)
+# install(TARGETS myVirsh DESTINATION bin)

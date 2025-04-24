@@ -19,6 +19,10 @@ VirConnect::VirConnect(const std::string& uri, unsigned int flags) : uri(uri) {
     for ( const auto& domain : domains_ ) {
         domains.push_back(std::make_shared<VirDomain>(domain->virDomainGetName(), domain->virDomainGetID(), domain->virDomainGetUUID(), driver.get()));
     }
+    std::vector<std::shared_ptr<VirStoragePool>> storagePools_ = storageDriver->connectListStoragePools(flags);
+    for ( const auto& pool : storagePools_ ) {
+        storagePools.push_back(std::make_shared<VirStoragePool>(pool->virStoragePoolGetName(), pool->virStoragePoolGetUUID(), storageDriver.get()));
+    }
 
     LOG_INFO("VirConnect initialized successfully, found %zu domains", domains.size());
 }

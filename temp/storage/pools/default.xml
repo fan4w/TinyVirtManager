@@ -1,0 +1,16 @@
+<pool type="dir">
+    <name>default</name>
+    <uuid>6a9d72b7-a71f-4590-8c14-8b04ec5c4d9c</uuid>
+    <capacity unit="bytes">1081101176832</capacity>
+    <allocation unit="bytes">41230778368</allocation>
+    <available unit="bytes">1039870398464</available>
+    <source/>
+    <target>
+        <path>/home/admin/kubevirt-study/image</path>
+        <permissions>
+            <mode>0711</mode>
+            <owner>0</owner>
+            <group>0</group>
+        </permissions>
+    </target>
+</pool>
