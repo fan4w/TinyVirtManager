@@ -22,6 +22,7 @@ void printUsage() {
         << "  vol-list <pool>          列出指定存储池中的所有存储卷\n"
         << "  vol-create-xml <pool> <file>  从XML文件创建存储卷\n"
         << "  vol-delete <pool> <vol>  删除存储卷\n"
+        << std::endl
         << "  help                     显示此帮助信息\n";
 }
 
@@ -211,16 +212,16 @@ int main(int argc, char* argv[])
 
         // 打印表头
         std::cout << std::setw(30) << std::left << "名称"
-            << std::setw(36) << std::left << "UUID"
+            // << std::setw(36) << std::left << "UUID"
             << std::setw(15) << std::left << "状态" << std::endl;
-        std::cout << std::string(80, '-') << std::endl;
+        std::cout << std::string(60, '-') << std::endl;
 
         // 打印每个存储池的信息
         for ( const auto& pool : pools ) {
             int state = pool->virStoragePoolGetState();
 
             std::cout << std::setw(30) << std::left << pool->virStoragePoolGetName()
-                << std::setw(36) << std::left << pool->virStoragePoolGetUUID()
+                // << std::setw(36) << std::left << pool->virStoragePoolGetUUID()
                 << std::setw(15) << std::left << getPoolStateString(state)
                 << std::endl;
         }
