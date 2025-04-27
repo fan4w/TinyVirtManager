@@ -15,6 +15,7 @@ VirConnect::VirConnect(const std::string& uri, unsigned int flags) : uri(uri) {
     // 根据URI创建对应的Driver
     driver = DriverFactory::createDriver(uri);
     storageDriver = StorageDriverFactory::createStorageDriver("filesystem");
+    networkDriver = std::unique_ptr<NetworkDriver>(new NetworkDriver());
     std::vector<std::shared_ptr<VirDomain>> domains_ = driver->connectListAllDomains(flags);
     for ( const auto& domain : domains_ ) {
         domains.push_back(std::make_shared<VirDomain>(domain->virDomainGetName(), domain->virDomainGetID(), domain->virDomainGetUUID(), driver.get()));
@@ -22,6 +23,10 @@ VirConnect::VirConnect(const std::string& uri, unsigned int flags) : uri(uri) {
     std::vector<std::shared_ptr<VirStoragePool>> storagePools_ = storageDriver->connectListStoragePools(flags);
     for ( const auto& pool : storagePools_ ) {
         storagePools.push_back(std::make_shared<VirStoragePool>(pool->virStoragePoolGetName(), pool->virStoragePoolGetUUID(), storageDriver.get()));
+    }
+    std::vector<std::shared_ptr<VirNetwork>> networks_ = networkDriver->connectListAllNetworks(flags);
+    for ( const auto& network : networks_ ) {
+        networks.push_back(std::make_shared<VirNetwork>(network->virNetworkGetName(), network->virNetworkGetUUID(), networkDriver.get()));
     }
 
     LOG_INFO("VirConnect initialized successfully, found %zu domains", domains.size());
@@ -197,4 +202,37 @@ std::shared_ptr<VirStorageVol> VirConnect::virStorageVolLookupByPath(const std::
 
 int VirConnect::virStorageVolDelete(const std::shared_ptr<VirStorageVol> vol, unsigned int flags) {
     return storageDriver->storageVolDelete(vol, flags);
+}
+
+std::vector<std::shared_ptr<VirNetwork>> VirConnect::virConnectListAllNetworks(unsigned int flags) const {
+    if ( flags == 0 ) {
+        return networks;
+    }
+    else {
+        throw std::invalid_argument("Unsupported flags for virConnectListAllNetworks.");
+    }
+}
+
+std::shared_ptr<VirNetwork> VirConnect::virNetworkDefineXML(const std::string& xmlDesc, unsigned int flags) {
+    std::shared_ptr<VirNetwork> network = networkDriver->networkDefineXML(xmlDesc, flags);
+    networks.push_back(network);
+    return network;
+}
+
+std::shared_ptr<VirNetwork> VirConnect::virNetworkLookupByName(const std::string& name) const {
+    for ( const auto& network : networks ) {
+        if ( network->virNetworkGetName() == name ) {
+            return network;
+        }
+    }
+    throw std::runtime_error("Network with name " + name + " does not exist.");
+}
+
+std::shared_ptr<VirNetwork> VirConnect::virNetworkLookupByUUID(const std::string& uuid) const {
+    for ( const auto& network : networks ) {
+        if ( network->virNetworkGetUUID() == uuid ) {
+            return network;
+        }
+    }
+    throw std::runtime_error("Network with UUID " + uuid + " does not exist.");
 }

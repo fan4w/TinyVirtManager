@@ -21,7 +21,13 @@ void printUsage() {
         << "存储卷命令:\n"
         << "  vol-list <pool>          列出指定存储池中的所有存储卷\n"
         << "  vol-create-xml <pool> <file>  从XML文件创建存储卷\n"
-        << "  vol-delete <pool> <vol>  删除存储卷\n"
+        << "  vol-delete <pool> <vol>  删除存储卷\n\n"
+        << "网络命令:\n"
+        << "  net-list                 列出所有网络\n"
+        << "  net-define-xml <file>    从XML文件定义网络\n"
+        << "  net-start <name>         启动指定网络\n"
+        << "  net-destroy <name>       停用指定网络\n"
+        << "  net-undefine <name>      取消定义网络\n\n"
         << std::endl
         << "  help                     显示此帮助信息\n";
 }
@@ -339,6 +345,111 @@ int main(int argc, char* argv[])
         }
         catch ( const std::exception& e ) {
             std::cerr << "错误: " << e.what() << std::endl;
+            return 1;
+        }
+    }
+    // else if ( command == "vol-create-xml" ) {
+    //     if ( argc < 4 ) {
+    //         std::cerr << "错误: 缺少存储池名或XML文件路径\n";
+    //         printUsage();
+    //         return 1;
+    //     }
+    //     // 读取XML文件
+    //     const char* xmlFile = argv[3];
+    //     std::ifstream file(xmlFile);
+    //     if ( !file.is_open() ) {
+    //         std::cerr << "错误: 无法打开文件 '" << xmlFile << "'\n";
+    //         return 1;
+    //     }
+    //     std::stringstream buffer;
+    //     buffer << file.rdbuf();
+    //     std::string xmlDesc = buffer.str();
+
+    //     // 建立连接并创建存储卷
+    //     try {
+    //         VirConnect conn("qemu:///system");
+    //         const char* poolName = argv[2];
+    //         std::shared_ptr<VirStoragePool> pool = conn.virStoragePoolLookupByName(poolName);
+    //         std::shared_ptr<VirStorageVol> vol = pool->virStorageVolCreateXML(xmlDesc);
+    //         std::cout << "存储卷 '" << vol->virStorageVolGetName() << "' 已创建\n";
+    //     }
+    //     catch ( const std::exception& e ) {
+    //         std::cerr << "错误: " << e.what() << std::endl;
+    //         return 1;
+    //     }
+    // }
+    // else if ( command == "vol-delete" ) {
+    //     if ( argc < 4 ) {
+    //         std::cerr << "错误: 缺少存储池名或存储卷名参数\n";
+    //         printUsage();
+    //         return 1;
+    //     }
+    //     try {
+    //         VirConnect conn("qemu:///system");
+    //         const char* poolName = argv[2];
+    //         const char* volName = argv[3];
+    //         std::shared_ptr<VirStoragePool> pool = conn.virStoragePoolLookupByName(poolName);
+    //         std::shared_ptr<VirStorageVol> vol = pool->virStorageVolLookupByName(volName);
+    //         conn.virStorageVolDelete(vol);
+    //         std::cout << "存储卷 '" << volName << "' 已删除\n";
+    //     }
+    //     catch ( const std::exception& e ) {
+    //         std::cerr << "错误: " << e.what() << std::endl;
+    //         return 1;
+    //     }
+    // }
+    else if ( command == "net-list" ) {
+        // 建立连接
+        VirConnect conn("qemu:///system");
+        std::vector<std::shared_ptr<VirNetwork>> networks = conn.virConnectListAllNetworks();
+
+        // 打印表头
+        std::cout << std::setw(30) << std::left << "名称"
+            << std::setw(36) << std::left << "UUID" << std::endl;
+        std::cout << std::string(75, '-') << std::endl;
+
+        // 打印每个网络的信息
+        for ( const auto& network : networks ) {
+            // int state = network->virNetworkGetState();
+
+            std::cout << std::setw(30) << std::left << network->virNetworkGetName()
+                << std::setw(36) << std::left << network->virNetworkGetUUID()
+                // << std::setw(15) << std::left << getDomainStateString(state)
+                << std::endl;
+        }
+    }
+    else if ( command == "net-define-xml" ) {
+        if ( argc < 3 ) {
+            std::cerr << "错误: 缺少XML文件路径\n";
+            printUsage();
+            return 1;
+        }
+        // 读取XML文件
+        const char* xmlFile = argv[2];
+        std::ifstream file(xmlFile);
+        if ( !file.is_open() ) {
+            std::cerr << "错误: 无法打开文件 '" << xmlFile << "'\n";
+            return 1;
+        }
+        std::stringstream buffer;
+        buffer << file.rdbuf();
+        std::string xmlDesc = buffer.str();
+
+        // 建立连接并定义网络
+        try {
+            VirConnect conn("qemu:///system");
+            std::shared_ptr<VirNetwork> network = conn.virNetworkDefineXML(xmlDesc);
+            std::cout << "网络 '" << network->virNetworkGetName() << "' 已定义\n";
+        }
+        catch ( const std::exception& e ) {
+            std::cerr << "错误: " << e.what() << std::endl;
+            return 1;
+        }
+    }
+    else if ( command == "net-start" ) {
+        if ( argc < 3 ) {
+            std::cerr << "错误: 缺少网络名参数\n";
+            printUsage();
             return 1;
         }
     }

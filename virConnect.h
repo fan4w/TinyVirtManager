@@ -9,8 +9,10 @@
 #include "virDomain.h"
 #include "virStoragePool.h"
 #include "virStorageVol.h"
+#include "virNetwork.h"
 #include "driver-hypervisor.h"
 #include "driver-storage.h"
+#include "driver-network.h"
 #include "./log/log.h"
 
 // 虚拟机状态枚举
@@ -66,9 +68,10 @@ private:
     std::vector<std::shared_ptr<VirStoragePool>> storagePools; // 存储池链表
     std::vector<std::shared_ptr<VirStorageVol>> storageVolumes; // 存储卷链表
 
-    // 用于存放虚拟机配置文件的目录
-    // TODO: 这里写死不太好，应该写入一个配置文件中，暂时先这样
-    const std::string pathToConfigDir = "./temp/domains";
+    std::unique_ptr<NetworkDriver> networkDriver;       // 网络驱动实例
+    std::vector<std::shared_ptr<VirNetwork>> networks;   // 网络链表
+
+    // const std::string pathToConfigDir = "./temp/domains";
 public:
     // 仿照Libvirt中的定义，增加一些方法，请根据以下方法编写程序
     explicit VirConnect(const std::string& uri, unsigned int flags = 0);
@@ -131,6 +134,12 @@ public:
     std::shared_ptr<VirStorageVol> virStorageVolLookupByPath(const std::string& path) const;
 
     int virStorageVolDelete(const std::shared_ptr<VirStorageVol> vol, unsigned int flags = 0);
+
+    // 网络管理
+    std::vector<std::shared_ptr<VirNetwork>> virConnectListAllNetworks(unsigned int flags = 0) const;
+    std::shared_ptr<VirNetwork> virNetworkLookupByName(const std::string& name) const;
+    std::shared_ptr<VirNetwork> virNetworkLookupByUUID(const std::string& uuid) const;
+    std::shared_ptr<VirNetwork> virNetworkDefineXML(const std::string& xmlDesc, unsigned int flags = 0);
 };
 
 #endif // VIRCONNECT_H
