@@ -29,6 +29,8 @@ public:
     virtual void domainCreate(std::shared_ptr<VirDomain> domain) = 0;
     virtual std::shared_ptr<VirDomain> domainCreateXML(const std::string& xml) = 0;
 
+    virtual int domainAttachDevice(std::shared_ptr<VirDomain> domain, const std::string& xmlDesc, unsigned int flags) = 0;
+
     // destroy会停止一个虚拟机
     virtual void domainDestroy(std::shared_ptr<VirDomain> domain) = 0;
     virtual void domainShutdown(std::shared_ptr<VirDomain> domain) = 0;

@@ -98,6 +98,9 @@ std::string QemuDriver::readFileContent(const std::string& filePath) const {
 std::shared_ptr<qemuDomainObj> QemuDriver::parseAndCreateDomainObj(const std::string& xmlDesc) {
     using namespace tinyxml2;
 
+    // 创建qemuDomainDef对象
+    std::shared_ptr<qemuDomainDef> def = std::make_shared<qemuDomainDef>();
+
     XMLDocument doc;
     XMLError err = doc.Parse(xmlDesc.c_str());
     if ( err != XML_SUCCESS ) {
@@ -178,18 +181,30 @@ std::shared_ptr<qemuDomainObj> QemuDriver::parseAndCreateDomainObj(const std::st
         vcpusElem->QueryIntText(&vcpus);
     }
 
+    // 更新解析磁盘部分的代码
     // 解析磁盘镜像
     std::string diskPath;
     XMLElement* devicesElem = domainElem ? domainElem->FirstChildElement("devices") : nullptr;
-    XMLElement* diskElem = nullptr;
     if ( devicesElem ) {
-        XMLElement* diskNode = devicesElem->FirstChildElement("disk");
-        if ( diskNode ) {
-            diskElem = diskNode->FirstChildElement("source");
+        // 处理disk元素
+        for ( XMLElement* diskNode = devicesElem->FirstChildElement("disk");
+            diskNode;
+            diskNode = diskNode->NextSiblingElement("disk") ) {
+
+            // 检查设备类型
+            const char* device = diskNode->Attribute("device");
+            if ( device && std::string(device) == "disk" ) {
+                XMLElement* sourceElem = diskNode->FirstChildElement("source");
+                if ( sourceElem && sourceElem->Attribute("file") ) {
+                    diskPath = sourceElem->Attribute("file");
+                    break;  // 只取第一个磁盘
+                }
+            }
         }
-    }
-    if ( diskElem && diskElem->Attribute("file") ) {
-        diskPath = diskElem->Attribute("file");
+
+        // 处理cdrom
+        // XMLElement* cdromElem = devicesElem->FirstChildElement("cdrom");
+        // 现有cdrom处理代码...
     }
 
     // 解析CDROM镜像
@@ -204,11 +219,112 @@ std::shared_ptr<qemuDomainObj> QemuDriver::parseAndCreateDomainObj(const std::st
         }
     }
 
+    // 解析网络接口
+    if ( devicesElem ) {
+        for ( XMLElement* ifaceElem = devicesElem->FirstChildElement("interface");
+            ifaceElem;
+            ifaceElem = ifaceElem->NextSiblingElement("interface") ) {
+
+            NetworkInterfaceInfo netIface;
+
+            // 获取接口类型
+            const char* typeAttr = ifaceElem->Attribute("type");
+            if ( typeAttr ) {
+                netIface.type = typeAttr;
+            }
+            else {
+                LOG_WARN("Interface without type attribute found, skipping");
+                continue;
+            }
+
+            // 获取MAC地址
+            XMLElement* macElem = ifaceElem->FirstChildElement("mac");
+            if ( macElem && macElem->Attribute("address") ) {
+                netIface.macAddress = macElem->Attribute("address");
+            }
+
+            // 获取模型类型
+            XMLElement* modelElem = ifaceElem->FirstChildElement("model");
+            if ( modelElem && modelElem->Attribute("type") ) {
+                netIface.modelType = modelElem->Attribute("type");
+            }
+            else {
+                // 默认使用e1000
+                netIface.modelType = "e1000";
+            }
+
+            // 根据接口类型获取源
+            XMLElement* sourceElem = ifaceElem->FirstChildElement("source");
+            if ( sourceElem ) {
+                if ( netIface.type == "bridge" && sourceElem->Attribute("bridge") ) {
+                    netIface.source = sourceElem->Attribute("bridge");
+                }
+                else if ( netIface.type == "network" && sourceElem->Attribute("network") ) {
+                    netIface.source = sourceElem->Attribute("network");
+                }
+            }
+
+            // 获取目标设备名称
+            XMLElement* targetElem = ifaceElem->FirstChildElement("target");
+            if ( targetElem && targetElem->Attribute("dev") ) {
+                netIface.target = targetElem->Attribute("dev");
+            }
+
+            // 将网络接口添加到列表
+            def->networkInterfaces.push_back(netIface);
+            LOG_INFO("Found network interface: type=%s, mac=%s, model=%s, source=%s",
+                netIface.type.c_str(),
+                netIface.macAddress.c_str(),
+                netIface.modelType.c_str(),
+                netIface.source.c_str());
+        }
+
+        // 添加处理<network>元素的代码
+        for ( XMLElement* netElem = devicesElem->FirstChildElement("network");
+            netElem;
+            netElem = netElem->NextSiblingElement("network") ) {
+
+            NetworkInterfaceInfo netIface;
+
+            // 默认使用bridge类型
+            netIface.type = "bridge";
+
+            // 获取网络名称
+            XMLElement* nameElem = netElem->FirstChildElement("name");
+            if ( nameElem && nameElem->GetText() ) {
+                // 记录网络名称，可用于日志
+                std::string netName = nameElem->GetText();
+                LOG_INFO("Found network: %s", netName.c_str());
+            }
+
+            // 查找bridge元素获取桥接名
+            XMLElement* bridgeElem = netElem->FirstChildElement("bridge");
+            if ( bridgeElem && bridgeElem->Attribute("name") ) {
+                netIface.source = bridgeElem->Attribute("name");
+            }
+
+            // 设置默认网卡类型
+            netIface.modelType = "e1000";
+
+            // 如果有MAC地址则解析
+            XMLElement* macElem = netElem->FirstChildElement("mac");
+            if ( macElem && macElem->Attribute("address") ) {
+                netIface.macAddress = macElem->Attribute("address");
+            }
+
+            // 将网络接口添加到列表
+            if ( !netIface.source.empty() ) {
+                def->networkInterfaces.push_back(netIface);
+                LOG_INFO("Found network element with bridge: %s, mac: %s",
+                    netIface.source.c_str(),
+                    netIface.macAddress.empty() ? "auto" : netIface.macAddress.c_str());
+            }
+        }
+    }
+
     // 判断是否启用KVM
     XMLElement* featuresElem = domainElem->FirstChildElement("features");
 
-    // 创建qemuDomainDef对象
-    std::shared_ptr<qemuDomainDef> def = std::make_shared<qemuDomainDef>();
     def->name = domainName;
     def->uuid = uuid;
     def->id = -1;  // 未运行状态
@@ -299,7 +415,30 @@ int QemuDriver::processQemuObject(std::shared_ptr<qemuDomainObj> domainObj) {
         args.push_back("unix:" + qemuDef->qmpSocketPath + ",server,nowait");
     }
 
-    // 将参数转换为 char* 数组用于 execv
+    // 处理网络接口
+    for ( size_t i = 0; i < qemuDef->networkInterfaces.size(); i++ ) {
+        const auto& iface = qemuDef->networkInterfaces[i];
+
+        if ( iface.type == "bridge" ) {
+            // 使用桥接名生成TAP设备名
+            std::string tapName = "tap_" + iface.source + "-net";
+
+            // 添加netdev参数
+            std::string netdevId = "net" + std::to_string(i);
+            args.push_back("-netdev");
+            args.push_back("tap,id=" + netdevId + ",ifname=" + tapName + ",script=no,downscript=no");
+
+            // 添加device参数，使用指定的网卡模型或默认的e1000
+            std::string deviceModel = iface.modelType.empty() ? "e1000" : iface.modelType;
+            args.push_back("-device");
+            args.push_back(deviceModel + ",netdev=" + netdevId);
+
+            LOG_INFO("Added network interface: bridge=%s, tap=%s, model=%s",
+                iface.source.c_str(), tapName.c_str(), deviceModel.c_str());
+        }
+    }
+
+    // 将参数转换为 char* 数组用于 execdd
     std::vector<char*> execArgs;
     for ( const auto& arg : args ) {
         execArgs.push_back(const_cast< char* >(arg.c_str()));
@@ -439,6 +578,89 @@ std::shared_ptr<VirDomain> QemuDriver::domainCreateXML(const std::string& xmlDes
     domains.push_back(domainObj);
     processQemuObject(domainObj);
     return std::make_shared<VirDomain>(domainObj->def->name, domainObj->def->id, domainObj->def->uuid);
+}
+
+int QemuDriver::domainAttachDevice(std::shared_ptr<VirDomain> domain, const std::string& xmlDesc, unsigned int flags) {
+    if ( flags != 0 ) {
+        throw std::runtime_error("Unsupported flags");
+    }
+
+    // 查找匹配的domainObj
+    std::string domainName = domain->virDomainGetName();
+    std::shared_ptr<qemuDomainObj> domainObj;
+    bool found = false;
+    for ( const auto& domainObj_ : domains ) {
+        if ( domainObj_->def->name == domainName ) {
+            domainObj = domainObj_;
+            found = true;
+            break;
+        }
+    }
+
+    if ( !found ) {
+        LOG_ERROR("Domain not found: %s", domainName.c_str());
+        throw std::runtime_error("Domain not found: " + domainName);
+    }
+
+    // 解析设备XML
+    using namespace tinyxml2;
+    XMLDocument deviceDoc;
+    XMLError err = deviceDoc.Parse(xmlDesc.c_str());
+    if ( err != XML_SUCCESS ) {
+        LOG_ERROR("Failed to parse device XML");
+        throw std::runtime_error("Failed to parse device XML");
+    }
+
+    // 获取设备类型
+    XMLElement* deviceElem = deviceDoc.RootElement();
+    if ( !deviceElem ) {
+        LOG_ERROR("Invalid device XML");
+        throw std::runtime_error("Invalid device XML");
+    }
+
+    std::string deviceType = deviceElem->Name();
+    LOG_INFO("Attaching device type: %s to domain: %s", deviceType.c_str(), domainName.c_str());
+
+    // 读取域的XML配置
+    XMLDocument domainDoc;
+    err = domainDoc.Parse(domainObj->def->xmlDesc.c_str());
+    if ( err != XML_SUCCESS ) {
+        LOG_ERROR("Failed to parse domain XML");
+        throw std::runtime_error("Failed to parse domain XML");
+    }
+
+    // 找到devices节点，如果不存在则创建
+    XMLElement* domainElem = domainDoc.FirstChildElement("domain");
+    if ( !domainElem ) {
+        LOG_ERROR("Invalid domain XML, missing domain element");
+        throw std::runtime_error("Invalid domain XML");
+    }
+
+    XMLElement* devicesElem = domainElem->FirstChildElement("devices");
+    if ( !devicesElem ) {
+        devicesElem = domainDoc.NewElement("devices");
+        domainElem->InsertEndChild(devicesElem);
+    }
+
+    // 导入新设备节点到domain文档
+    XMLNode* importedDevice = deviceElem->DeepClone(&domainDoc);
+    devicesElem->InsertEndChild(importedDevice);
+
+    // 保存修改后的XML到配置文件
+    std::string configPath = config.getConfigDir() + "/" + domainName + ".xml";
+    if ( domainDoc.SaveFile(configPath.c_str()) != XML_SUCCESS ) {
+        LOG_ERROR("Failed to save updated XML to file: %s", configPath.c_str());
+        return -1;
+    }
+
+    // 更新domainObj中的XML描述
+    XMLPrinter printer;
+    domainDoc.Print(&printer);
+    domainObj->def->xmlDesc = printer.CStr();
+
+    LOG_INFO("Successfully attached %s device to domain %s XML configuration",
+        deviceType.c_str(), domainName.c_str());
+    return 0;
 }
 
 void QemuDriver::domainDestroy(std::shared_ptr<VirDomain> domain) {

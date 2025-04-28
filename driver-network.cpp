@@ -68,6 +68,20 @@ std::shared_ptr<VirNetwork> NetworkDriver::networkDefineXML(const std::string& x
     }
 }
 
+std::string NetworkDriver::netWorkGetXMLDesc(std::shared_ptr<VirNetwork> network, unsigned int flags) {
+    if ( flags != 0 ) {
+        LOG_ERROR("Invalid flags for network XML description: %u", flags);
+        return {};
+    }
+    for ( const auto& network_ : networks ) {
+        if ( network_->uuid == network->virNetworkGetUUID() ) {
+            return network_->xmlDesc;
+        }
+    }
+    LOG_WARN("Network %s not found: %s", network->virNetworkGetName().c_str(), network->virNetworkGetUUID().c_str());
+    return {};
+}
+
 void NetworkDriver::networkCreate(std::shared_ptr<VirNetwork> network) {
     if ( !network ) {
         LOG_ERROR("Attempt to create null network");
@@ -101,6 +115,7 @@ void NetworkDriver::networkCreate(std::shared_ptr<VirNetwork> network) {
         // 创建TAP设备
         std::string cmd = "ip tuntap add dev " + tapName + " mode tap";
         int ret = system(cmd.c_str());
+        LOG_INFO("Executing command: %s", cmd.c_str());
         if ( ret != 0 ) {
             LOG_ERROR("Failed to create TAP device %s: %d", tapName.c_str(), ret);
             return;
@@ -109,6 +124,7 @@ void NetworkDriver::networkCreate(std::shared_ptr<VirNetwork> network) {
         // 将TAP设备连接到网桥
         cmd = "ip link set " + tapName + " master " + netObj->bridgeName;
         ret = system(cmd.c_str());
+        LOG_INFO("Executing command: %s", cmd.c_str());
         if ( ret != 0 ) {
             LOG_ERROR("Failed to connect TAP device %s to bridge %s: %d",
                 tapName.c_str(), netObj->bridgeName.c_str(), ret);
@@ -120,6 +136,7 @@ void NetworkDriver::networkCreate(std::shared_ptr<VirNetwork> network) {
         // 设置TAP设备为启用状态
         cmd = "ip link set " + tapName + " up";
         ret = system(cmd.c_str());
+        LOG_INFO("Executing command: %s", cmd.c_str());
         if ( ret != 0 ) {
             LOG_ERROR("Failed to set TAP device %s up: %d", tapName.c_str(), ret);
             // 清理已创建的TAP设备
@@ -312,161 +329,4 @@ std::shared_ptr<networkObj> NetworkDriver::parseAndCreateNetworkObj(const std::s
     }
 
     return network;
-}
-
-bool NetworkDriver::attachNetworkInterface(const std::string& domainName,
-    const std::string& networkName,
-    const std::string& macAddress,
-    const std::string& deviceModel) {
-    // 查找指定的网络
-    std::shared_ptr<networkObj> netObj = nullptr;
-    for ( const auto& obj : networks ) {
-        if ( obj->name == networkName ) {
-            netObj = obj;
-            break;
-        }
-    }
-
-    if ( !netObj ) {
-        LOG_ERROR("Network %s not found for domain %s", networkName.c_str(), domainName.c_str());
-        return false;
-    }
-
-    // 生成接口名称，通常格式为 vnetX 或类似格式
-    std::string interfaceName = "vnet_" + domainName + "_" + networkName;
-    std::string finalMacAddress = macAddress;
-
-    // 如果未提供MAC地址，则生成一个随机MAC地址
-    if ( finalMacAddress.empty() ) {
-        // 使用简单的MAC地址生成算法，实际项目中可能需要更复杂的算法
-        finalMacAddress = "52:54:00";
-        srand(time(NULL));
-        char mac[18];
-        snprintf(mac, sizeof(mac), "%s:%02x:%02x:%02x",
-            finalMacAddress.c_str(),
-            rand() % 256, rand() % 256, rand() % 256);
-        finalMacAddress = mac;
-    }
-
-    LOG_INFO("Attaching network interface to domain %s: network=%s, mac=%s, model=%s",
-        domainName.c_str(), networkName.c_str(),
-        finalMacAddress.c_str(), deviceModel.c_str());
-
-    // 根据网络转发模式执行不同的操作
-    if ( netObj->forward == BRIDGE ) {
-        // 创建网桥连接
-        std::string tapName = "tap_" + domainName + "_" + networkName;
-
-        // 创建TAP设备
-        std::string cmd = "ip tuntap add dev " + tapName + " mode tap";
-        int ret = system(cmd.c_str());
-        if ( ret != 0 ) {
-            LOG_ERROR("Failed to create TAP device %s for domain %s: %d",
-                tapName.c_str(), domainName.c_str(), ret);
-            return false;
-        }
-
-        // 将TAP设备连接到网桥
-        cmd = "ip link set " + tapName + " master " + netObj->bridgeName;
-        ret = system(cmd.c_str());
-        if ( ret != 0 ) {
-            LOG_ERROR("Failed to connect TAP device %s to bridge %s: %d",
-                tapName.c_str(), netObj->bridgeName.c_str(), ret);
-            // 清理已创建的TAP设备
-            system(("ip link delete " + tapName).c_str());
-            return false;
-        }
-
-        // 设置TAP设备MAC地址
-        if ( !finalMacAddress.empty() ) {
-            cmd = "ip link set " + tapName + " address " + finalMacAddress;
-            ret = system(cmd.c_str());
-            if ( ret != 0 ) {
-                LOG_ERROR("Failed to set MAC address for TAP device %s: %d",
-                    tapName.c_str(), ret);
-                // 不回滚，继续尝试
-            }
-        }
-
-        // 设置TAP设备为启用状态
-        cmd = "ip link set " + tapName + " up";
-        ret = system(cmd.c_str());
-        if ( ret != 0 ) {
-            LOG_ERROR("Failed to set TAP device %s up: %d", tapName.c_str(), ret);
-            // 清理已创建的TAP设备
-            system(("ip link delete " + tapName).c_str());
-            return false;
-        }
-
-        // 保存接口信息
-        DomainNetworkInterface iface;
-        iface.domainName = domainName;
-        iface.networkName = networkName;
-        iface.interfaceName = interfaceName;
-        iface.macAddress = finalMacAddress;
-        iface.deviceModel = deviceModel;
-        iface.tapDeviceName = tapName;  // 仅对桥接模式有效
-
-        // 将接口添加到映射中
-        domainNetworkInterfaces[domainName].push_back(iface);
-
-        // 记录设备绑定信息，以便后续管理
-        // 这里可能需要额外的数据结构来保存这些信息
-        LOG_INFO("Network interface %s successfully attached to domain %s using bridge %s",
-            tapName.c_str(), domainName.c_str(), netObj->bridgeName.c_str());
-
-        return true;
-    }
-    else if ( netObj->forward == NAT ) {
-        // NAT模式的网络接口绑定实现
-        LOG_ERROR("NAT mode network attachment not implemented yet for domain %s", domainName.c_str());
-        return false;
-    }
-    else {
-        LOG_ERROR("Unknown forward mode for network %s when attaching to domain %s",
-            networkName.c_str(), domainName.c_str());
-        return false;
-    }
-}
-
-bool NetworkDriver::detachNetworkInterface(const std::string& domainName, const std::string& macAddress) {
-    auto it = domainNetworkInterfaces.find(domainName);
-    if ( it == domainNetworkInterfaces.end() ) {
-        LOG_ERROR("No network interfaces found for domain %s", domainName.c_str());
-        return false;
-    }
-
-    auto& interfaces = it->second;
-    for ( auto ifIt = interfaces.begin(); ifIt != interfaces.end(); ++ifIt ) {
-        if ( ifIt->macAddress == macAddress ) {
-            // 找到匹配的接口，执行分离操作
-            LOG_INFO("Detaching network interface with MAC %s from domain %s",
-                macAddress.c_str(), domainName.c_str());
-
-            // 如果是桥接模式，需要清理TAP设备
-            if ( !ifIt->tapDeviceName.empty() ) {
-                std::string cmd = "ip link delete " + ifIt->tapDeviceName;
-                int ret = system(cmd.c_str());
-                if ( ret != 0 ) {
-                    LOG_ERROR("Failed to delete TAP device %s: %d",
-                        ifIt->tapDeviceName.c_str(), ret);
-                    // 继续尝试清理其他资源
-                }
-            }
-
-            // 从列表中移除接口记录
-            interfaces.erase(ifIt);
-
-            // 如果该域没有其他接口，则从映射中移除该域
-            if ( interfaces.empty() ) {
-                domainNetworkInterfaces.erase(it);
-            }
-
-            return true;
-        }
-    }
-
-    LOG_ERROR("Network interface with MAC %s not found for domain %s",
-        macAddress.c_str(), domainName.c_str());
-    return false;
 }

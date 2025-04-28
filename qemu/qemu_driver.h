@@ -51,6 +51,8 @@ public:
     void domainCreate(std::shared_ptr<VirDomain> domain) override;
     std::shared_ptr<VirDomain> domainCreateXML(const std::string& xmlDesc) override;
 
+    int domainAttachDevice(std::shared_ptr<VirDomain> domain, const std::string& xmlDesc, unsigned int flags) override;
+
     void domainDestroy(std::shared_ptr<VirDomain> domain) override;
     void domainShutdown(std::shared_ptr<VirDomain> domain) override;
 

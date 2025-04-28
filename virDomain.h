@@ -27,6 +27,8 @@ public:
     std::string virDomainGetName() const;
     int virDomainGetID() const;
     std::string virDomainGetUUID() const;
+
+    int virDomainAttachDevice(const std::string& xmlDesc, unsigned int flags = 0);
 };
 
 #endif // VIRDOMAIN_H

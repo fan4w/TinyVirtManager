@@ -20,6 +20,7 @@ public:
     }
     std::string virNetworkGetName() const;
     std::string virNetworkGetUUID() const;
+    std::string virNetworkGetXMLDesc(unsigned int flags = 0) const;
     void virNetworkCreate();
     void virNetworkDestroy();
 };

@@ -9,6 +9,7 @@ void printUsage() {
         << "虚拟机命令:\n"
         << "  list                     列出所有虚拟机\n"
         << "  start <domain>           启动指定虚拟机\n"
+        << "  attach <device>          绑定网络设备到虚拟机\n"
         << "  destroy <domain>         强制关闭指定虚拟机\n"
         << "  shutdown <domain>        优雅关闭指定虚拟机\n"
         << "  status <domain>          查询指定虚拟机状态\n\n"
@@ -130,6 +131,33 @@ int main(int argc, char* argv[])
 
         try {
             conn.virDomainCreate(domain);
+        }
+        catch ( const std::exception& e ) {
+            std::cerr << "Error: " << e.what() << std::endl;
+        }
+    }
+    else if ( command == "attach" ) {
+        if ( argc < 3 ) {
+            std::cerr << "错误: 缺少设备参数\n";
+            printUsage();
+            return 1;
+        }
+        // 建立连接
+        VirConnect conn("qemu:///system");
+        std::string domainName = argv[2];
+        std::string deviceName = argv[3];
+        std::shared_ptr<VirDomain> domain = conn.virDomainLookupByName(domainName);
+
+        if ( domain == NULL ) {
+            std::cerr << "错误: 找不到域 '" << deviceName << "'\n";
+            return 1;
+        }
+
+        std::shared_ptr<VirNetwork> device = conn.virNetworkLookupByName(deviceName);
+        std::string deviceXML = device->virNetworkGetXMLDesc();
+
+        try {
+            domain->virDomainAttachDevice(deviceXML);
         }
         catch ( const std::exception& e ) {
             std::cerr << "Error: " << e.what() << std::endl;
@@ -450,6 +478,18 @@ int main(int argc, char* argv[])
         if ( argc < 3 ) {
             std::cerr << "错误: 缺少网络名参数\n";
             printUsage();
+            return 1;
+        }
+        // 建立连接
+        try {
+            VirConnect conn("qemu:///system");
+            const char* networkName = argv[2];
+            std::shared_ptr<VirNetwork> network = conn.virNetworkLookupByName(networkName);
+            network->virNetworkCreate();
+            std::cout << "网络 '" << networkName << "' 已激活\n";
+        }
+        catch ( const std::exception& e ) {
+            std::cerr << "错误: " << e.what() << std::endl;
             return 1;
         }
     }

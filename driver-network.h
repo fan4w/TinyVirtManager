@@ -23,16 +23,7 @@ public:
     void networkCreate(std::shared_ptr<VirNetwork> network);
     void networkDestroy(std::shared_ptr<VirNetwork> network);
     void networkUndefine(std::shared_ptr<VirNetwork> network);
-
-    // 将网络接口绑定到虚拟机
-    bool attachNetworkInterface(const std::string& domainName,
-        const std::string& networkName,
-        const std::string& macAddress = "",
-        const std::string& deviceModel = "virtio");
-
-    // 从虚拟机分离网络接口
-    bool detachNetworkInterface(const std::string& domainName, const std::string& macAddress);
-
+    std::string netWorkGetXMLDesc(std::shared_ptr<VirNetwork> network, unsigned int flags = 0);
 private:
     std::string configDir; // 配置目录
     // 网络池管理
@@ -47,9 +38,6 @@ private:
         std::string deviceModel;
         std::string tapDeviceName;  // 如果适用
     };
-
-    // 存储域名和网络接口的映射关系
-    std::map<std::string, std::vector<DomainNetworkInterface>> domainNetworkInterfaces;
 
     // 辅助函数
     void loadAllNetworkConfigs();

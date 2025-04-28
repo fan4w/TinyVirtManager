@@ -5,6 +5,14 @@
 #include <vector>
 #include <memory>
 
+struct NetworkInterfaceInfo {
+    std::string type;       // 网络类型: bridge, user等
+    std::string macAddress; // MAC地址
+    std::string modelType;  // 设备模型: virtio, e1000等
+    std::string source;     // 网络源(如bridge名称)
+    std::string target;     // 目标设备名称
+};
+
 // 声明基础域定义类
 class virDomainDef {
 public:
@@ -30,6 +38,7 @@ public:
 
     // 设备和网络配置...
     // (省略其他配置项)
+    std::vector<NetworkInterfaceInfo> networkInterfaces; // 网络接口信息
     virtual ~virDomainDef() = default;
 };
 

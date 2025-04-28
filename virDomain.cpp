@@ -51,3 +51,7 @@ int VirDomain::virDomainGetID() const {
 std::string VirDomain::virDomainGetUUID() const {
     return uuid;
 }
+
+int VirDomain::virDomainAttachDevice(const std::string& xmlDesc, unsigned int flags) {
+    return driver->domainAttachDevice(std::make_shared<VirDomain>(*this), xmlDesc, flags);
+}
