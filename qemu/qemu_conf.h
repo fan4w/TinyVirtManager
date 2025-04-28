@@ -9,6 +9,7 @@ private:
     std::string configDir;
     std::string qmpSocketDir;
     std::string qemuEmulator;
+    bool openGraphics;
     // bool createDirectoryIfNotExists(const std::string& path) const;
 public:
     QemuDriverConfig();
@@ -17,6 +18,9 @@ public:
     std::string getQemuEmulator() const;
     std::string getLogDir() const {
         return "./temp/log";
+    }
+    bool isOpenGraphics() const {
+        return openGraphics;
     }
 };
 

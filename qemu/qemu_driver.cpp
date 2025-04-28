@@ -438,6 +438,11 @@ int QemuDriver::processQemuObject(std::shared_ptr<qemuDomainObj> domainObj) {
         }
     }
 
+    if ( !config.isOpenGraphics() ) {
+        args.push_back("-display");
+        args.push_back("none");
+    }
+
     // 将参数转换为 char* 数组用于 execdd
     std::vector<char*> execArgs;
     for ( const auto& arg : args ) {

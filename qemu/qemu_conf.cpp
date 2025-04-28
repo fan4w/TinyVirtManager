@@ -12,7 +12,8 @@ QemuDriverConfig::QemuDriverConfig() {
     configDir = configManager->getValue("qemu.config_dir", "./temp/domains");
     qmpSocketDir = configManager->getValue("qemu.qmp_socket_dir", "./temp/unix_sockets");
     qemuEmulator = configManager->getValue("qemu.qemu_emulator", "/usr/bin/qemu-system-x86_64");
-    
+    openGraphics = configManager->getValue("qemu.open_graphics", "true") == "true";
+     
     if ( !access(configDir.c_str(), F_OK) ) {
         createDirectoryIfNotExists(configDir);
     }
