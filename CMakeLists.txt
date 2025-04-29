@@ -26,6 +26,7 @@ file(GLOB LIB_SOURCES
     "${CMAKE_CURRENT_SOURCE_DIR}/qemu/qemu_conf.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/qemu/qemu_driver.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/qemu/qemu_monitor.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/xen/xen_driver.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/conf/config_manager.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/conf/driver_conf.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/conf/network_conf.cpp"

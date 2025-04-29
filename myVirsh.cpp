@@ -9,7 +9,7 @@ void printUsage() {
         << "虚拟机命令:\n"
         << "  list                     列出所有虚拟机\n"
         << "  start <domain>           启动指定虚拟机\n"
-        << "  attach <device>          绑定网络设备到虚拟机\n"
+        << "  attach <domain> <device> 绑定网络设备到虚拟机\n"
         << "  destroy <domain>         强制关闭指定虚拟机\n"
         << "  shutdown <domain>        优雅关闭指定虚拟机\n"
         << "  status <domain>          查询指定虚拟机状态\n\n"

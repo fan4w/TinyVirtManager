@@ -7,7 +7,7 @@
 #include <stdexcept>
 #include "../log/log.h"
 
-bool createDirectoryIfNotExists(const std::string& path) {
+inline bool createDirectoryIfNotExists(const std::string& path) {
     // 检查目录是否存在
     struct stat st;
     if ( stat(path.c_str(), &st) == 0 ) {
