@@ -5,6 +5,8 @@
 #include <memory>
 #include <stdexcept>
 #include <vector>
+#include <map>
+#include <functional>
 
 class VirDomain;
 
@@ -44,8 +46,14 @@ public:
 
 class DriverFactory {
 public:
+    using Creator = std::function<std::unique_ptr<HypervisorDriver>()>;
+    static void registerDriver(const std::string& pattern, Creator creator);
     static std::unique_ptr<HypervisorDriver> createDriver(const std::string& uri);
+private:
+    static std::map<std::string, Creator>& getRegistry();
 };
 
+#define REGISTER_DRIVER(pattern, driverClass) \
+    DriverFactory::registerDriver(pattern, []() { return std::unique_ptr<HypervisorDriver>(new driverClass()); })
 
 #endif // DRIVER_HYPERVISOR_H
