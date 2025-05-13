@@ -358,15 +358,15 @@ int main(int argc, char* argv[])
             std::vector<std::shared_ptr<VirStorageVol>> volumes = pool->virStoragePoolListAllVolumes();
 
             // 打印表头
-            std::cout << std::setw(30) << std::left << "名称"
-                << std::setw(15) << std::left << "大小(字节)"
+            std::cout << std::setw(50) << std::left << "名称"
+                // << std::setw(15) << std::left << "大小(字节)"
                 << std::setw(50) << std::left << "路径" << std::endl;
-            std::cout << std::string(95, '-') << std::endl;
+            std::cout << std::string(105, '-') << std::endl;
 
             // 打印每个存储卷的信息
             for ( const auto& vol : volumes ) {
-                std::cout << std::setw(30) << std::left << vol->virStorageVolGetName()
-                    << std::setw(15) << std::left << vol->virStorageVolGetCapacity()
+                std::cout << std::setw(50) << std::left << vol->virStorageVolGetName()
+                    // << std::setw(15) << std::left << vol->virStorageVolGetCapacity()
                     << std::setw(50) << std::left << vol->virStorageVolGetPath()
                     << std::endl;
             }
